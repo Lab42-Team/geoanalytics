@@ -19,7 +19,7 @@ def get_csv_data(csv_file_name):
     """
     file_data = None
     # Формирование полного пути к csv-файлу электронной таблицы
-    csv_file = Path(Path.cwd().parent, "examples", csv_file_name)
+    csv_file = Path(Path.cwd().parent, "data", csv_file_name)
     # Если указанный csv-файл существует
     if csv_file.exists():
         try:
@@ -43,6 +43,7 @@ def get_fires_list(fires_csv_data):
         item = dict()
         item["fire_id"] = row["fire_id"]
         item["dt"] = row["dt"]
+        item["since"] = row["since"]
         item["lat"] = row["lat"]
         item["lon"] = row["lon"]
         item["poly"] = row["poly"]
@@ -125,6 +126,23 @@ def get_population_density_list(population_density_csv_data):
         item = dict()
         item["name"] = row["name"]
         item["population_density_2016"] = row["population_density_2016"]
+        item["geom"] = row["geom"]
+        result[row["id"]] = item
+
+    return result
+
+
+def get_forestry_list(forestry_csv_data):
+    """
+    Получение словаря с необходимой информацией по лесничествам из данных csv-файла электронной таблицы.
+    :param forestry_csv_data: данные csv-файла электронной таблицы по лесничествам
+    :return: словарь с информацией по лесничествам
+    """
+    result = dict()
+    for index, row in forestry_csv_data.iterrows():
+        item = dict()
+        item["oblname"] = row["oblname"]
+        item["frname"] = row["frname"]
         item["geom"] = row["geom"]
         result[row["id"]] = item
 

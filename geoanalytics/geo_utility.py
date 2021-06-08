@@ -137,6 +137,35 @@ def determine_average_population_density(fires_dict, population_density_dict):
     return fires_dict
 
 
+def determine_forestry(fires_dict, forestry_dict):
+    """
+    Определение лесничеств, которые были затронуты пожарами.
+    :param fires_dict: словарь с данными по пожарам
+    :param forestry_dict: словарь с данными по лесничествам
+    :return: дополненный словарь с данными по пожарам
+    """
+    for fire_item in fires_dict.values():
+        # Получение полигона пожара
+        fire_polygon = shapely.wkb.loads(fire_item["poly"], hex=True)
+        forestry = ""
+        for forestry_item in forestry_dict.values():
+            try:
+                # Получение полигона лесничества
+                forestry_polygon = shapely.wkb.loads(forestry_item["geom"], hex=True)
+                # Если есть пересечение полигона пожара с полигоном лесничества
+                if fire_polygon.intersects(forestry_polygon):
+                    if forestry == "":
+                        forestry = forestry_item["frname"]
+                    else:
+                        forestry += ", " + forestry_item["frname"]
+            except WKBReadingError:
+                print("Не удалось создать геометрию из-за ошибок при чтении.")
+        # Формирование данных по лесничествам
+        fire_item["forestry"] = forestry
+
+    return fires_dict
+
+
 def get_polygon_intersection(fires_dict):
     for item1 in fires_dict.values():
         if item1["fire_id"] == 24:
