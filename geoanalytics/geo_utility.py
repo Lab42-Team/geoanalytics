@@ -4,6 +4,7 @@ import shapely.wkb
 import shapely.wkt
 from pyproj import Geod
 from shapely import ops
+from shapely.geometry import Point
 from shapely.ops import cascaded_union
 from shapely.errors import WKBReadingError
 
@@ -137,7 +138,7 @@ def determine_average_population_density(fires_dict, population_density_dict):
     return fires_dict
 
 
-def determine_forestry(fires_dict, forestry_dict):
+def determine_intersection_with_forestry(fires_dict, forestry_dict):
     """
     Определение лесничеств, которые были затронуты пожарами.
     :param fires_dict: словарь с данными по пожарам
@@ -162,6 +163,37 @@ def determine_forestry(fires_dict, forestry_dict):
                 print("Не удалось создать геометрию из-за ошибок при чтении.")
         # Формирование данных по лесничествам
         fire_item["forestry"] = forestry
+
+    return fires_dict
+
+
+def determine_nearest_weather_station(fires_dict, weather_stations_dict):
+    """
+    Определение ближайших к пожарам метеостанций.
+    :param fires_dict: словарь с данными по пожарам
+    :param weather_stations_dict: словарь с данными по метеостанциям
+    :return: дополненный словарь с данными по пожарам
+    """
+    for fire_item in fires_dict.values():
+        # Получение точки пожара по координатам
+        fire_point = Point(float(fire_item["lat"]), float(fire_item["lon"]))
+        # Получение минимального расстояния от точки пожара до точки метеостанции
+        min_distance = 99999
+        weather_station_id = None
+        weather_station_name = None
+        for geom_item in weather_stations_dict.values():
+            try:
+                weather_station_point = Point(float(geom_item["latitude"]), float(geom_item["longitude"]))
+                current_distance = fire_point.distance(weather_station_point)
+                if min_distance > current_distance:
+                    min_distance = current_distance
+                    weather_station_id = geom_item["weather_station_id"]
+                    weather_station_name = geom_item["weather_station_name"]
+            except WKBReadingError:
+                print("Не удалось создать геометрию из-за ошибок при чтении.")
+        # Формирование данных по метеостанции
+        fire_item["weather_station_id"] = int(weather_station_id)
+        fire_item["weather_station_name"] = weather_station_name
 
     return fires_dict
 
