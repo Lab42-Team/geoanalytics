@@ -42,5 +42,6 @@ def determine_weather_characteristics(fires_dict):
                         fire_item["Ff"] = weather_item["Ff"]
                         fire_item["U"] = weather_item["U"]
                         fire_item["T"] = weather_item["T"]
+                        fire_item["Td"] = weather_item["Td"]
 
     return fires_dict

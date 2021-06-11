@@ -222,6 +222,7 @@ def get_weather_dict(weather_csv_data):
         item["Ff"] = row["Ff"]
         item["U"] = row["U"]
         item["T"] = row["T"]
+        item["Td"] = row["Td"]
         result[result_id] = item
         result_id += 1
 
