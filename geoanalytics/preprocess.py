@@ -7,7 +7,6 @@ from pathlib import Path
 # Каталоги с исходными данными
 DATA_DIR_NAME = "data"
 WEATHER_DIR_NAME = "weather_data"
-
 # Названия исходных csv-файлов
 FIRE_CSV_FILE = "fires_avh_3076_for_test.csv"
 CAR_ROADS_CSV_FILE = "gis_bogdanov.dorogiavtomobiln.csv"
@@ -17,7 +16,7 @@ LAKES_CSV_FILE = "gis_bogdanov.ozerabakalskireg.csv"
 POPULATION_DENSITY_CSV_FILE = "gis_bogdanov.plotnostselskogo.csv"
 FORESTRY_CSV_FILE = "user_schema.lestniche_3036.csv"
 WEATHER_STATIONS_CSV_FILE = "user_schema.gidromed_3075.csv"
-
+FOREST_DISTRICTS_CSV_FILE = "user_schema.lesnye_kv_3051.csv"
 # Название целевого (выходного) csv-файла
 OUTPUT_FILE_NAME = "data.csv"
 
@@ -223,6 +222,24 @@ def get_weather_dict(weather_csv_data):
         item["U"] = row["U"]
         item["T"] = row["T"]
         item["Td"] = row["Td"]
+        result[result_id] = item
+        result_id += 1
+
+    return result
+
+
+def get_forest_districts_dict(forest_districts_csv_data):
+    """
+    Получение словаря с необходимой информацией по кварталам (дачам) из данных csv-файла электронной таблицы.
+    :param forest_districts_csv_data: данные csv-файла электронной таблицы по кварталам (дачам)
+    :return: словарь с информацией по кварталам (дачам)
+    """
+    result = dict()
+    result_id = 1
+    for index, row in forest_districts_csv_data.iterrows():
+        item = dict()
+        item["kv"] = row["kv"]
+        item["geom"] = row["geom"]
         result[result_id] = item
         result_id += 1
 

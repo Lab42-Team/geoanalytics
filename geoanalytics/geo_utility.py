@@ -198,6 +198,36 @@ def determine_nearest_weather_station(fires_dict, weather_stations_dict):
     return fires_dict
 
 
+def determine_intersection_with_forest_districts(fires_dict, forest_districts_dict):
+    """
+    Определение кварталов (дач), которые были затронуты пожарами.
+    :param fires_dict: словарь с данными по пожарам
+    :param forest_districts_dict: словарь с данными по кварталам (дачам)
+    :return: дополненный словарь с данными по пожарам
+    """
+    for fire_item in fires_dict.values():
+        # Получение полигона пожара
+        fire_polygon = shapely.wkb.loads(fire_item["poly"], hex=True)
+        forest_districts = ""
+        for forest_district_item in forest_districts_dict.values():
+            try:
+                # Получение полигона квартала (дачи)
+                forest_district_polygon = shapely.wkb.loads(forest_district_item["geom"], hex=True)
+                # Если есть пересечение полигона пожара с полигоном квартала (дачи)
+                if fire_polygon.intersects(forest_district_polygon):
+                    if forest_districts == "":
+                        forest_districts = str(forest_district_item["kv"])
+                    else:
+                        forest_districts += ", " + str(forest_district_item["kv"])
+            except WKBReadingError:
+                print("Не удалось создать геометрию из-за ошибок при чтении.")
+        # Формирование данных по кварталам (дачам)
+        fire_item["kv"] = forest_districts
+        print(forest_districts)
+
+    return fires_dict
+
+
 def get_polygon_intersection(fires_dict):
     for item1 in fires_dict.values():
         if item1["fire_id"] == 24:
