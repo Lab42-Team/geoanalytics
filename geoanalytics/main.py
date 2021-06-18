@@ -35,9 +35,13 @@ forestry_dict = gp.get_forestry_dict(forestry_csv_data)
 weather_stations_csv_data = gp.get_csv_data(gp.WEATHER_STATIONS_CSV_FILE)
 weather_stations_dict = gp.get_weather_stations_dict(weather_stations_csv_data)
 
-# Получение данных по кварталам (дачам)
+# Получение данных по лесным кварталам
 forest_districts_csv_data = gp.get_csv_data(gp.FOREST_DISTRICTS_CSV_FILE)
 forest_districts_dict = gp.get_forest_districts_dict(forest_districts_csv_data)
+
+# Получение данных по классам опасности лесов
+forest_hazard_classes_csv_data = gp.get_csv_data(gp.FOREST_HAZARD_CLASSES_CSV_FILE)
+forest_hazard_classes_dict = gp.get_forest_hazard_classes_dict(forest_hazard_classes_csv_data)
 
 # Определение недостающих характеристик (площади и расстояний)
 # result = ggu.determine_area_and_distances(fires_dict, car_roads_dict, railways_dict, rivers_dict, lakes_dict)
@@ -53,11 +57,13 @@ forest_districts_dict = gp.get_forest_districts_dict(forest_districts_csv_data)
 # Определение характеристик погоды по метеостанциям
 # result = utl.determine_weather_characteristics(fires_dict)
 
-# Определение затронутых пожарами кварталов (дач)
-result = ggu.determine_intersection_with_forest_districts(fires_dict, forest_districts_dict)
+# Определение класса опасности лесов
+result = ggu.determine_forest_hazard_classes(fires_dict, forest_districts_dict, forest_hazard_classes_dict)
 
 # Сохранение результатов в новом CSV-файле
 gp.save_new_csv_file(result)
+
+# ggu.union_polygons(fires_dict)
 
 # ggu.get_polygon_intersection(fires_csv_data)
 # ggu.testing(fires_csv_data)

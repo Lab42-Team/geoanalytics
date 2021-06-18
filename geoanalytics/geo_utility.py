@@ -198,32 +198,44 @@ def determine_nearest_weather_station(fires_dict, weather_stations_dict):
     return fires_dict
 
 
-def determine_intersection_with_forest_districts(fires_dict, forest_districts_dict):
+def determine_forest_hazard_classes(fires_dict, forest_districts_dict, forest_hazard_classes_dict):
     """
-    Определение кварталов (дач), которые были затронуты пожарами.
+    Определение классов опасности лесов на основе лесных кварталов, которые были затронуты пожарами.
     :param fires_dict: словарь с данными по пожарам
-    :param forest_districts_dict: словарь с данными по кварталам (дачам)
+    :param forest_districts_dict: словарь с данными по лесным кварталам
+    :param forest_hazard_classes_dict: словарь с данными по классам опасностей лесов
     :return: дополненный словарь с данными по пожарам
     """
     for fire_item in fires_dict.values():
         # Получение полигона пожара
         fire_polygon = shapely.wkb.loads(fire_item["poly"], hex=True)
         forest_districts = ""
+        forest_hazard_classes = []
         for forest_district_item in forest_districts_dict.values():
             try:
-                # Получение полигона квартала (дачи)
+                # Получение полигона лесного квартала
                 forest_district_polygon = shapely.wkb.loads(forest_district_item["geom"], hex=True)
-                # Если есть пересечение полигона пожара с полигоном квартала (дачи)
+                # Если есть пересечение полигона пожара с полигоном лесного квартала
                 if fire_polygon.intersects(forest_district_polygon):
+                    # Формирование строки с лесными кварталами затронутых пожарами
                     if forest_districts == "":
-                        forest_districts = str(forest_district_item["kv"])
+                        forest_districts = str([forest_district_item["name_in"], forest_district_item["kv"]])
                     else:
-                        forest_districts += ", " + str(forest_district_item["kv"])
+                        forest_districts += ", " + str([forest_district_item["name_in"], forest_district_item["kv"]])
+                    # Обход данных по классам опасностей лесов
+                    for forest_hazard_classes_item in forest_hazard_classes_dict.values():
+                        if forest_hazard_classes_item["municipality"] == forest_district_item["name_in"]:
+                            for forest_district_number in forest_hazard_classes_item["forest_districts"]:
+                                if int(forest_district_number) == int(forest_district_item["kv"]):
+                                    # Формирование списка определенных классов опасности лесов
+                                    if not str(forest_hazard_classes_item["hazard_class"]) in forest_hazard_classes:
+                                        forest_hazard_classes.append(str(forest_hazard_classes_item["hazard_class"]))
             except WKBReadingError:
                 print("Не удалось создать геометрию из-за ошибок при чтении.")
-        # Формирование данных по кварталам (дачам)
+        # Формирование данных по лесным кварталам
         fire_item["kv"] = forest_districts
-        print(forest_districts)
+        # Формирование данных по классам опасности лесов
+        fire_item["forest_hazard_classes"] = str(forest_hazard_classes)
 
     return fires_dict
 
@@ -236,6 +248,19 @@ def get_polygon_intersection(fires_dict):
                     shape1 = shapely.wkb.loads(item1["poly"], hex=True)
                     shape2 = shapely.wkb.loads(item2["poly"], hex=True)
                     print(shape1.intersects(shape2))
+
+
+def union_polygons(fires_dict):
+    polygons = []
+    for item1 in fires_dict.values():
+        if item1["fire_id"] == 24:
+            shape = shapely.wkb.loads(item1["poly"], hex=True)
+            shape_area = get_area(shape)
+            print("Geodesic area: {:.3f} km^2".format(shape_area))
+            polygons.append(shape)
+    combined_polygon = cascaded_union(polygons)
+    combined_area = get_area(combined_polygon)
+    print("Geodesic combined area: {:.3f} km^2".format(combined_area))
 
 
 def testing(file_data):

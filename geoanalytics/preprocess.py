@@ -17,6 +17,7 @@ POPULATION_DENSITY_CSV_FILE = "gis_bogdanov.plotnostselskogo.csv"
 FORESTRY_CSV_FILE = "user_schema.lestniche_3036.csv"
 WEATHER_STATIONS_CSV_FILE = "user_schema.gidromed_3075.csv"
 FOREST_DISTRICTS_CSV_FILE = "user_schema.lesnye_kv_3051.csv"
+FOREST_HAZARD_CLASSES_CSV_FILE = "forest_hazard_classes.csv"
 # Название целевого (выходного) csv-файла
 OUTPUT_FILE_NAME = "data.csv"
 
@@ -230,16 +231,36 @@ def get_weather_dict(weather_csv_data):
 
 def get_forest_districts_dict(forest_districts_csv_data):
     """
-    Получение словаря с необходимой информацией по кварталам (дачам) из данных csv-файла электронной таблицы.
-    :param forest_districts_csv_data: данные csv-файла электронной таблицы по кварталам (дачам)
-    :return: словарь с информацией по кварталам (дачам)
+    Получение словаря с необходимой информацией по лесным кварталам из данных csv-файла электронной таблицы.
+    :param forest_districts_csv_data: данные csv-файла электронной таблицы по лесным кварталам
+    :return: словарь с информацией по лесным кварталам
     """
     result = dict()
     result_id = 1
     for index, row in forest_districts_csv_data.iterrows():
         item = dict()
+        item["name_in"] = row["name_in"]
         item["kv"] = row["kv"]
         item["geom"] = row["geom"]
+        result[result_id] = item
+        result_id += 1
+
+    return result
+
+
+def get_forest_hazard_classes_dict(forest_hazard_classes_csv_data):
+    """
+    Получение словаря с необходимой информацией по классам опасности лесов из данных csv-файла электронной таблицы.
+    :param forest_hazard_classes_csv_data: данные csv-файла электронной таблицы по классам опасности лесов
+    :return: словарь с информацией по классам опасности лесов
+    """
+    result = dict()
+    result_id = 1
+    for index, row in forest_hazard_classes_csv_data.iterrows():
+        item = dict()
+        item["municipality"] = row[0]
+        item["forest_districts"] = str(row[1]).split(",")
+        item["hazard_class"] = row[2]
         result[result_id] = item
         result_id += 1
 
