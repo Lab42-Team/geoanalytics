@@ -7,6 +7,7 @@ from shapely import ops
 from shapely.geometry import Point
 from shapely.ops import cascaded_union
 from shapely.errors import WKBReadingError
+from datetime import datetime
 
 
 def reproject(geom):
@@ -206,7 +207,9 @@ def determine_forest_hazard_classes(fires_dict, forest_districts_dict, forest_ha
     :param forest_hazard_classes_dict: словарь с данными по классам опасностей лесов
     :return: дополненный словарь с данными по пожарам
     """
+    start_full_time = datetime.now()
     for fire_item in fires_dict.values():
+        start_time = datetime.now()
         # Получение полигона пожара
         fire_polygon = shapely.wkb.loads(fire_item["poly"], hex=True)
         forest_districts = ""
@@ -219,12 +222,16 @@ def determine_forest_hazard_classes(fires_dict, forest_districts_dict, forest_ha
                 if fire_polygon.intersects(forest_district_polygon):
                     # Формирование строки с лесными кварталами затронутых пожарами
                     if forest_districts == "":
-                        forest_districts = str([forest_district_item["name_in"], forest_district_item["kv"]])
+                        forest_districts = str([forest_district_item["name_in"],
+                                                forest_district_item["dacha_ru"], forest_district_item["kv"]])
                     else:
-                        forest_districts += ", " + str([forest_district_item["name_in"], forest_district_item["kv"]])
+                        forest_districts += ", " + str([forest_district_item["name_in"],
+                                                        forest_district_item["dacha_ru"], forest_district_item["kv"]])
                     # Обход данных по классам опасностей лесов
                     for forest_hazard_classes_item in forest_hazard_classes_dict.values():
-                        if forest_hazard_classes_item["municipality"] == forest_district_item["name_in"]:
+                        if forest_hazard_classes_item["municipality"] == forest_district_item["name_in"] and \
+                                forest_hazard_classes_item["dacha"] == forest_district_item["dacha_ru"] and \
+                                forest_hazard_classes_item["forest_plot"] == forest_district_item["uch_l_ru"]:
                             for forest_district_number in forest_hazard_classes_item["forest_districts"]:
                                 if int(forest_district_number) == int(forest_district_item["kv"]):
                                     # Формирование списка определенных классов опасности лесов
@@ -236,8 +243,100 @@ def determine_forest_hazard_classes(fires_dict, forest_districts_dict, forest_ha
         fire_item["kv"] = forest_districts
         # Формирование данных по классам опасности лесов
         fire_item["forest_hazard_classes"] = str(forest_hazard_classes)
+        print("Классы опасности: " + fire_item["forest_hazard_classes"])
+        print(str(fire_item["fire_id"]) + ": " + str(datetime.now() - start_time))
+    print("Full time: " + str(datetime.now() - start_full_time))
 
     return fires_dict
+
+
+def identify_fire(fires_dict):
+    """
+    Идентификация пожаров на основе пересечения их пологонов.
+    :param fires_dict: словарь с данными по пожарам (со старыми fire_id)
+    :return: новый словарь с данными по пожарам (с новыми new_fire_id)
+    """
+    start_full_time = datetime.now()
+    index = 1
+    for current_key, current_item in fires_dict.items():
+        start_time = datetime.now()
+        shape1 = shapely.wkb.loads(current_item["poly"], hex=True)
+        intersection = list()
+        for key, item in fires_dict.items():
+            if key > current_key:
+                shape2 = shapely.wkb.loads(item["poly"], hex=True)
+                if shape1.intersects(shape2):
+                    if current_item["new_fire_id"] == "":
+                        intersection.append(key)
+                    if current_item["new_fire_id"] != "" and item["new_fire_id"] == "":
+                        item["new_fire_id"] = current_item["new_fire_id"]
+        number = index
+        for key, item in fires_dict.items():
+            if key > current_key:
+                for value in intersection:
+                    if key == value and item["new_fire_id"] != "":
+                        if number != index and number != item["new_fire_id"]:
+                            print("Обнаружены разные индексы")
+                        number = item["new_fire_id"]
+        for key, item in fires_dict.items():
+            if key > current_key:
+                for value in intersection:
+                    if key == value:
+                        item["new_fire_id"] = number
+        if current_item["new_fire_id"] == "":
+            current_item["new_fire_id"] = index
+            index += 1
+        print(str(current_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
+    print("***************************************************")
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return fires_dict
+
+
+def identify_fire_by_dates(fires_dict):
+    start_full_time = datetime.now()
+    index = 1
+    for current_key, current_item in fires_dict.items():
+        start_time = datetime.now()
+        for key, item in fires_dict.items():
+            if key > current_key:
+                current_date_str = current_item["dt"].split(" ")[0]
+                current_date_obj = datetime.strptime(current_date_str, "%d.%m.%Y")
+                date_str = item["dt"].split(" ")[0]
+                date_obj = datetime.strptime(date_str, "%d.%m.%Y")
+                days = abs((date_obj - current_date_obj).days)
+                if days <= 1 or (2 < days < 10):
+                    shape1 = shapely.wkb.loads(current_item["poly"], hex=True)
+                    shape2 = shapely.wkb.loads(item["poly"], hex=True)
+                    if shape1.intersects(shape2):
+                        if current_item["new_fire_id"] == "":
+                            item["new_fire_id"] = index
+                        else:
+                            item["new_fire_id"] = current_item["new_fire_id"]
+                else:
+                    break
+        if current_item["new_fire_id"] == "":
+            current_item["new_fire_id"] = index
+            index += 1
+        print(str(current_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
+    print("***************************************************")
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return fires_dict
+
+
+def define_gaps_in_days(fires_dict):
+    for key1, item1 in fires_dict.items():
+        for key2, item2 in fires_dict.items():
+            if key2 > key1:
+                date1_str = item1["dt"].split(" ")[0]
+                date1_obj = datetime.strptime(date1_str, "%d.%m.%Y")
+                date2_str = item2["dt"].split(" ")[0]
+                date2_obj = datetime.strptime(date2_str, "%d.%m.%Y")
+                days = abs((date2_obj - date1_obj).days)
+                if days > 2:
+                    print("Days: " + str(days) + " Dates: " + item1["dt"] + " - " + item2["dt"])
+                break
 
 
 def get_polygon_intersection(fires_dict):

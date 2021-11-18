@@ -8,7 +8,7 @@ from pathlib import Path
 DATA_DIR_NAME = "data"
 WEATHER_DIR_NAME = "weather_data"
 # Названия исходных csv-файлов
-FIRE_CSV_FILE = "fires_avh_3076_for_test.csv"
+FIRE_CSV_FILE = "fires_in_region_2018.csv"
 CAR_ROADS_CSV_FILE = "gis_bogdanov.dorogiavtomobiln.csv"
 RAILWAYS_CSV_FILE = "gis_bogdanov.dorogizheleznyeb.csv"
 RIVERS_CSV_FILE = "gis_bogdanov.rekibakalskiregi.csv"
@@ -72,15 +72,20 @@ def get_fires_dict(fires_csv_data):
     :return: словарь с информацией по пожарам
     """
     result = dict()
+    result_id = 1
     for index, row in fires_csv_data.iterrows():
         item = dict()
+        item["id"] = row["id"]
         item["fire_id"] = row["fire_id"]
+        item["new_fire_id"] = row["new_fire_id"]  # item["new_fire_id"] = ""  # Для обработки старого файла пожаров
         item["dt"] = row["dt"]
         item["since"] = row["since"]
         item["lat"] = row["lat"]
         item["lon"] = row["lon"]
         item["poly"] = row["poly"]
-        result[row["id"]] = item
+        item["geometry"] = row["geometry"]
+        result[result_id] = item
+        result_id += 1
 
     return result
 
@@ -239,9 +244,11 @@ def get_forest_districts_dict(forest_districts_csv_data):
     result_id = 1
     for index, row in forest_districts_csv_data.iterrows():
         item = dict()
-        item["name_in"] = row["name_in"]
-        item["kv"] = row["kv"]
-        item["geom"] = row["geom"]
+        item["name_in"] = row[0]
+        item["dacha_ru"] = row[4]
+        item["uch_l_ru"] = row[5]
+        item["kv"] = row[11]
+        item["geom"] = row[20]
         result[result_id] = item
         result_id += 1
 
@@ -259,8 +266,10 @@ def get_forest_hazard_classes_dict(forest_hazard_classes_csv_data):
     for index, row in forest_hazard_classes_csv_data.iterrows():
         item = dict()
         item["municipality"] = row[0]
-        item["forest_districts"] = str(row[1]).split(",")
-        item["hazard_class"] = row[2]
+        item["forest_plot"] = row[1]
+        item["dacha"] = row[2]
+        item["forest_districts"] = str(row[3]).split(",")
+        item["hazard_class"] = row[4]
         result[result_id] = item
         result_id += 1
 
