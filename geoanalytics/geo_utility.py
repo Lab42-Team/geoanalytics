@@ -252,7 +252,7 @@ def determine_forest_hazard_classes(fires_dict, forest_districts_dict, forest_ha
 
 def identify_fire(fires_dict):
     """
-    Идентификация пожаров на основе пересечения их пологонов.
+    Идентификация пожаров на основе пересечения их полигонов.
     :param fires_dict: словарь с данными по пожарам (со старыми fire_id)
     :return: новый словарь с данными по пожарам (с новыми new_fire_id)
     """
@@ -284,9 +284,109 @@ def identify_fire(fires_dict):
                     if key == value:
                         item["new_fire_id"] = number
         if current_item["new_fire_id"] == "":
-            current_item["new_fire_id"] = index
+            current_item["new_fire_id"] = number
             index += 1
         print(str(current_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
+    print("***************************************************")
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return fires_dict
+
+
+def delete_fire(fires_dict, not_fires_dict):
+    """
+    Удаление пожаров пересекающихся с полигонами не пожаров (техногенными объектами).
+    :param fires_dict: словарь с данными по пожарам
+    :param not_fires_dict: словарь с данными по не пожарам (техногенным объектам)
+    :return: новый словарь с данными по пожарам
+    """
+    start_full_time = datetime.now()
+    # Вычисление пожаров, полигоны которых пересекаются с полигонами не пожаров
+    intersection = list()
+    for fire_key, fire_item in fires_dict.items():
+        start_time = datetime.now()
+        shape1 = shapely.wkb.loads(fire_item["poly"], hex=True)
+        for not_fire_key, not_fire_item in not_fires_dict.items():
+            shape2 = shapely.wkb.loads(not_fire_item["WKB"], hex=True)
+            if shape1.intersects(shape2):
+                for key, item in fires_dict.items():
+                    if item["new_fire_id"] == fire_item["new_fire_id"]:
+                        if key not in intersection:
+                            intersection.append(key)
+                break
+        print(str(fire_item["id"]) + ": " + str(datetime.now() - start_time))
+    # Удаление пожаров
+    for key in intersection:
+        fires_dict.pop(key)
+    print("***************************************************")
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return fires_dict
+
+
+def delete_fire_by_locality(fires_dict, locality_dict):
+    """
+    Удаление пожаров пересекающихся с полигонами населенных пунктов.
+    :param fires_dict: словарь с данными по пожарам
+    :param locality_dict: словарь с данными по населенным пунктам
+    :return: новый словарь с данными по пожарам
+    """
+    start_full_time = datetime.now()
+    # Вычисление пожаров, полигоны которых пересекаются с полигонами населенных пунктов
+    intersection = list()
+    for fire_key, fire_item in fires_dict.items():
+        start_time = datetime.now()
+        shape1 = shapely.wkt.loads(fire_item["geometry"])
+        for locality_key, locality_item in locality_dict.items():
+            if int(locality_item["locality"]) == 1:
+                shape2 = shapely.wkt.loads(locality_item["poly_wkt"])
+                if shape1.intersects(shape2):
+                    for key, item in fires_dict.items():
+                        if item["new_fire_id"] == fire_item["new_fire_id"]:
+                            if key not in intersection:
+                                intersection.append(key)
+                    break
+        print(str(fire_item["id"]) + ": " + str(datetime.now() - start_time))
+    # Удаление пожаров
+    for key in intersection:
+        fires_dict.pop(key)
+    print("***************************************************")
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return fires_dict
+
+
+def delete_fire_by_forest_district(fires_dict, forest_districts_dict):
+    """
+    Удаление пожаров не пересекающихся с полигонами лесных кварталов.
+    :param fires_dict: словарь с данными по пожарам
+    :param forest_districts_dict: словарь с данными по лесным кварталам
+    :return: новый словарь с данными по пожарам
+    """
+    start_full_time = datetime.now()
+    # Вычисление пожаров не пересекающихся с лесными кварталами
+    not_intersection = list()
+    for fire_key, fire_item in fires_dict.items():
+        start_time = datetime.now()
+        shape1 = shapely.wkb.loads(fire_item["poly"], hex=True)
+        intersection = False
+        for forest_district_key, forest_district_item in forest_districts_dict.items():
+            try:
+                shape2 = shapely.wkb.loads(forest_district_item["geom"], hex=True)
+                if shape1.intersects(shape2):
+                    intersection = True
+                    break
+            except WKBReadingError:
+                print("Не удалось создать геометрию из-за ошибок при чтении.")
+        if not intersection:
+            for key, item in fires_dict.items():
+                if item["new_fire_id"] == fire_item["new_fire_id"]:
+                    if key not in not_intersection:
+                        not_intersection.append(key)
+        print(str(fire_item["id"]) + ": " + str(datetime.now() - start_time))
+    # Удаление пожаров
+    for key in not_intersection:
+        fires_dict.pop(key)
     print("***************************************************")
     print("Full time: " + str(datetime.now() - start_full_time))
 

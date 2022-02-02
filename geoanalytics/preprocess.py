@@ -8,7 +8,7 @@ from pathlib import Path
 DATA_DIR_NAME = "data"
 WEATHER_DIR_NAME = "weather_data"
 # Названия исходных csv-файлов
-FIRE_CSV_FILE = "fires_in_region_2018.csv"
+FIRE_CSV_FILE = "data-2020.csv"  # "fires_in_region_2017.csv"
 CAR_ROADS_CSV_FILE = "gis_bogdanov.dorogiavtomobiln.csv"
 RAILWAYS_CSV_FILE = "gis_bogdanov.dorogizheleznyeb.csv"
 RIVERS_CSV_FILE = "gis_bogdanov.rekibakalskiregi.csv"
@@ -18,6 +18,8 @@ FORESTRY_CSV_FILE = "user_schema.lestniche_3036.csv"
 WEATHER_STATIONS_CSV_FILE = "user_schema.gidromed_3075.csv"
 FOREST_DISTRICTS_CSV_FILE = "user_schema.lesnye_kv_3051.csv"
 FOREST_HAZARD_CLASSES_CSV_FILE = "forest_hazard_classes.csv"
+NOT_FIRES_CSV_FILE = "not_fires.csv"  # Данные по не пожарам
+LOCALITIES_CSV_FILE = "localities.csv"  # Данные по населенным пунктам
 # Название целевого (выходного) csv-файла
 OUTPUT_FILE_NAME = "data.csv"
 
@@ -77,13 +79,63 @@ def get_fires_dict(fires_csv_data):
         item = dict()
         item["id"] = row["id"]
         item["fire_id"] = row["fire_id"]
-        item["new_fire_id"] = row["new_fire_id"]  # item["new_fire_id"] = ""  # Для обработки старого файла пожаров
+        # item["new_fire_id"] = ""  # Для обработки старого файла пожаров
+        item["new_fire_id"] = row["new_fire_id"]
         item["dt"] = row["dt"]
         item["since"] = row["since"]
         item["lat"] = row["lat"]
         item["lon"] = row["lon"]
         item["poly"] = row["poly"]
         item["geometry"] = row["geometry"]
+        result[result_id] = item
+        result_id += 1
+
+    return result
+
+
+def get_not_fires_dict(not_fires_csv_data):
+    """
+    Получение словаря с необходимой информацией по не пожарам из данных csv-файла электронной таблицы.
+    :param not_fires_csv_data: данные csv-файла электронной таблицы по не пажарам
+    :return: словарь с информацией по не пожарам
+    """
+    result = dict()
+    result_id = 1
+    for index, row in not_fires_csv_data.iterrows():
+        item = dict()
+        item["id"] = row["id"]
+        item["WKT"] = row["WKT"]
+        item["WKB"] = row["WKB"]
+        result[result_id] = item
+        result_id += 1
+
+    return result
+
+
+def get_locality_dict(locality_csv_data):
+    """
+    Получение словаря с необходимой информацией по населенным пунктам из данных csv-файла электронной таблицы.
+    :param locality_csv_data: данные csv-файла электронной таблицы по населенным пунктам
+    :return: словарь с информацией по населенным пунктам
+    """
+    result = dict()
+    result_id = 1
+    for index, row in locality_csv_data.iterrows():
+        item = dict()
+        item["name"] = row["name"]
+        item["type"] = row["type"]
+        item["name_MO"] = row["name_MO"]
+        item["code"] = row["code"]
+        item["distance"] = row["distance"]
+        item["ado"] = row["ado"]
+        item["id"] = row["id"]
+        item["query"] = row["query"]
+        item["address"] = row["address"]
+        item["geometry"] = row["geometry"]
+        item["poly_wkt"] = row["poly_wkt"]
+        item["poly"] = row["poly"]
+        item["valid"] = row["valid"]
+        item["locality"] = row["locality"]
         result[result_id] = item
         result_id += 1
 
