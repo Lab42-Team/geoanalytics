@@ -87,6 +87,22 @@ def get_fires_dict(fires_csv_data):
         item["lon"] = row["lon"]
         item["poly"] = row["poly"]
         item["geometry"] = row["geometry"]
+        # Поля для получения расширенной информации по пожарам
+        # item["area"] = row["area"]
+        # item["distance_to_car_road"] = row["distance_to_car_road"]
+        # item["distance_to_railway"] = row["distance_to_railway"]
+        # item["distance_to_river"] = row["distance_to_river"]
+        # item["distance_to_lake"] = row["distance_to_lake"]
+        # item["municipalities"] = row["municipalities"]
+        # item["average_population_density"] = row["average_population_density"]
+        # item["forestry"] = row["forestry"]
+        # item["weather_station_id"] = row["weather_station_id"]
+        # item["weather_station_name"] = row["weather_station_name"]
+        # item["RRR"] = row["RRR"]
+        # item["Ff"] = row["Ff"]
+        # item["U"] = row["U"]
+        # item["T"] = row["T"]
+        # item["Td"] = row["Td"]
         result[result_id] = item
         result_id += 1
 
