@@ -82,9 +82,11 @@ def determine_area_and_distances(fires_dict, car_roads_dict, railways_dict, rive
     :param lakes_dict: словарь с данными по озерам
     :return: дополненный словарь с данными по пожарам
     """
+    start_full_time = datetime.now()
     for fire_item in fires_dict.values():
+        start_time = datetime.now()
         # Получение полигона пожара
-        fire_polygon = shapely.wkb.loads(fire_item["poly"], hex=True)
+        fire_polygon = shapely.wkt.loads(fire_item["geometry"])
         # Получение площади полигона пожара
         fire_polygon_area = get_area(fire_polygon)
         fire_item["area"] = "{:.3f}".format(fire_polygon_area)
@@ -92,10 +94,13 @@ def determine_area_and_distances(fires_dict, car_roads_dict, railways_dict, rive
         fire_item["distance_to_car_road"] = get_min_distance(fire_polygon, car_roads_dict)
         # Получение минимального расстояния текущего полигона с пожаром до железной дороги
         fire_item["distance_to_railway"] = get_min_distance(fire_polygon, railways_dict)
-        # Получение минимального расстояния текущего полигона с пожаром до реки
-        fire_item["distance_to_river"] = get_min_distance(fire_polygon, rivers_dict)
+        # # Получение минимального расстояния текущего полигона с пожаром до реки
+        # fire_item["distance_to_river"] = get_min_distance(fire_polygon, rivers_dict)
         # Получение минимального расстояния текущего полигона с пожаром до озера
         fire_item["distance_to_lake"] = get_min_distance(fire_polygon, lakes_dict)
+        print(str(fire_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
+    print("***************************************************")
+    print("Full time: " + str(datetime.now() - start_full_time))
 
     return fires_dict
 
@@ -108,6 +113,7 @@ def determine_average_population_density(fires_dict, population_density_dict):
     :param population_density_dict: словарь с данными по плотности населения
     :return: дополненный словарь с данными по пожарам
     """
+    start_full_time = datetime.now()
     for fire_item in fires_dict.values():
         # Получение полигона пожара
         fire_polygon = shapely.wkb.loads(fire_item["poly"], hex=True)
@@ -125,7 +131,10 @@ def determine_average_population_density(fires_dict, population_density_dict):
                         municipalities = population_density_item["name"]
                     else:
                         municipalities += ", " + population_density_item["name"]
-                    full_population_density += float(population_density_item["population_density_2016"])
+                    try:
+                        full_population_density += float(population_density_item["population_density_2016"])
+                    except ValueError:
+                        print("Не удалось преобразовать строку в число с плавающей запятой.")
                     counter += 1
             except WKBReadingError:
                 print("Не удалось создать геометрию из-за ошибок при чтении.")
@@ -135,6 +144,7 @@ def determine_average_population_density(fires_dict, population_density_dict):
         # Формирование данных по муниципальным образованиям и средней плотности населения
         fire_item["municipalities"] = municipalities
         fire_item["average_population_density"] = average_population_density
+    print("Full time: " + str(datetime.now() - start_full_time))
 
     return fires_dict
 
@@ -146,6 +156,7 @@ def determine_intersection_with_forestry(fires_dict, forestry_dict):
     :param forestry_dict: словарь с данными по лесничествам
     :return: дополненный словарь с данными по пожарам
     """
+    start_full_time = datetime.now()
     for fire_item in fires_dict.values():
         # Получение полигона пожара
         fire_polygon = shapely.wkb.loads(fire_item["poly"], hex=True)
@@ -164,6 +175,7 @@ def determine_intersection_with_forestry(fires_dict, forestry_dict):
                 print("Не удалось создать геометрию из-за ошибок при чтении.")
         # Формирование данных по лесничествам
         fire_item["forestry"] = forestry
+    print("Full time: " + str(datetime.now() - start_full_time))
 
     return fires_dict
 
@@ -175,6 +187,7 @@ def determine_nearest_weather_station(fires_dict, weather_stations_dict):
     :param weather_stations_dict: словарь с данными по метеостанциям
     :return: дополненный словарь с данными по пожарам
     """
+    start_full_time = datetime.now()
     for fire_item in fires_dict.values():
         # Получение точки пожара по координатам
         fire_point = Point(float(fire_item["lat"]), float(fire_item["lon"]))
@@ -195,6 +208,7 @@ def determine_nearest_weather_station(fires_dict, weather_stations_dict):
         # Формирование данных по метеостанции
         fire_item["weather_station_id"] = int(weather_station_id)
         fire_item["weather_station_name"] = weather_station_name
+    print("Full time: " + str(datetime.now() - start_full_time))
 
     return fires_dict
 
