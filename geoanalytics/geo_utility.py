@@ -293,7 +293,7 @@ def identify_fire(fires_dict):
     return fires_dict
 
 
-def delete_fire(fires_dict, not_fires_dict):
+def delete_fire_by_technogenic_object(fires_dict, not_fires_dict):
     """
     Удаление пожаров пересекающихся с полигонами не пожаров (техногенными объектами).
     :param fires_dict: словарь с данными по пожарам
@@ -386,6 +386,30 @@ def delete_fire_by_forest_district(fires_dict, forest_districts_dict):
         print(str(fire_item["id"]) + ": " + str(datetime.now() - start_time))
     # Удаление пожаров
     for key in not_intersection:
+        fires_dict.pop(key)
+    print("***************************************************")
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return fires_dict
+
+
+def delete_fire(fires_dict):
+    """
+    Отбор пожаров по первой дате их появления (все остальные записи пожаров кроме первой удалаются).
+    :param fires_dict: словарь с данными по пожарам
+    :return: новый словарь с данными по пожарам
+    """
+    start_full_time = datetime.now()
+    # Вычисление лишних пожаров
+    saved_fires = dict()
+    deleted_fires = []
+    for key, item in fires_dict.items():
+        if item["new_fire_id"] in saved_fires:
+            deleted_fires.append(key)
+        else:
+            saved_fires[item["new_fire_id"]] = key
+    # Удаление пожаров
+    for key in deleted_fires:
         fires_dict.pop(key)
     print("***************************************************")
     print("Full time: " + str(datetime.now() - start_full_time))
