@@ -20,6 +20,7 @@ FOREST_DISTRICTS_CSV_FILE = "user_schema.lesnye_kv_3051.csv"
 FOREST_HAZARD_CLASSES_CSV_FILE = "forest_hazard_classes.csv"
 NOT_FIRES_CSV_FILE = "not_fires.csv"  # Данные по не пожарам
 LOCALITIES_CSV_FILE = "localities.csv"  # Данные по населенным пунктам
+WEATHER_CONDITIONS_CSV_FILE = "kp_po_forcast.csv"  # Данные по погодным условиям (прогноз) и вычисленной опасности
 # Название целевого (выходного) csv-файла
 OUTPUT_FILE_NAME = "data.csv"
 
@@ -88,21 +89,21 @@ def get_fires_dict(fires_csv_data):
         item["poly"] = row["poly"]
         item["geometry"] = row["geometry"]
         # Поля для получения расширенной информации по пожарам
-        # item["area"] = row["area"]
-        # item["distance_to_car_road"] = row["distance_to_car_road"]
-        # item["distance_to_railway"] = row["distance_to_railway"]
+        item["municipalities"] = row["municipalities"]
+        item["average_population_density"] = row["average_population_density"]
+        item["forestry"] = row["forestry"]
+        item["weather_station_id"] = row["weather_station_id"]
+        item["weather_station_name"] = row["weather_station_name"]
+        item["RRR"] = row["RRR"]
+        item["Ff"] = row["Ff"]
+        item["U"] = row["U"]
+        item["T"] = row["T"]
+        item["Td"] = row["Td"]
+        item["area"] = row["area"]
+        item["distance_to_car_road"] = row["distance_to_car_road"]
+        item["distance_to_railway"] = row["distance_to_railway"]
         # item["distance_to_river"] = row["distance_to_river"]
-        # item["distance_to_lake"] = row["distance_to_lake"]
-        # item["municipalities"] = row["municipalities"]
-        # item["average_population_density"] = row["average_population_density"]
-        # item["forestry"] = row["forestry"]
-        # item["weather_station_id"] = row["weather_station_id"]
-        # item["weather_station_name"] = row["weather_station_name"]
-        # item["RRR"] = row["RRR"]
-        # item["Ff"] = row["Ff"]
-        # item["U"] = row["U"]
-        # item["T"] = row["T"]
-        # item["Td"] = row["Td"]
+        item["distance_to_lake"] = row["distance_to_lake"]
         result[result_id] = item
         result_id += 1
 
@@ -338,6 +339,25 @@ def get_forest_hazard_classes_dict(forest_hazard_classes_csv_data):
         item["dacha"] = row[2]
         item["forest_districts"] = str(row[3]).split(",")
         item["hazard_class"] = row[4]
+        result[result_id] = item
+        result_id += 1
+
+    return result
+
+
+def get_weather_conditions_dict(weather_conditions_csv_data):
+    """
+    Получение словаря с необходимой информацией по погодным условиям (прогнозу погоды).
+    :param weather_conditions_csv_data: данные csv-файла электронной таблицы по погодным условиям (прогнозу погоды)
+    :return: словарь с информацией по погодным условиям (прогнозу погоды)
+    """
+    result = dict()
+    result_id = 1
+    for index, row in weather_conditions_csv_data.iterrows():
+        item = dict()
+        item["station"] = row[0]
+        item["datetime"] = row[3]
+        item["kp"] = row[10]
         result[result_id] = item
         result_id += 1
 
