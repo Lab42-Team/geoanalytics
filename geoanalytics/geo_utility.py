@@ -1,7 +1,11 @@
+import re
+
+import numpy as np
 import pyproj
 import shapely
 import shapely.wkb
 import shapely.wkt
+from Levenshtein._levenshtein import distance
 from pyproj import Geod
 from shapely import ops
 from shapely.geometry import Point
@@ -223,43 +227,123 @@ def determine_forest_hazard_classes(fires_dict, forest_districts_dict, forest_ha
     :return: дополненный словарь с данными по пожарам
     """
     start_full_time = datetime.now()
+    defined_hazard_class_number = 0
+    fire_number = 0
     for fire_item in fires_dict.values():
         start_time = datetime.now()
+        fire_number += 1
         # Получение полигона пожара
         fire_polygon = shapely.wkb.loads(fire_item["poly"], hex=True)
         forest_districts = ""
         forest_hazard_classes = []
+        flag = []
         for forest_district_item in forest_districts_dict.values():
             try:
                 # Получение полигона лесного квартала
                 forest_district_polygon = shapely.wkb.loads(forest_district_item["geom"], hex=True)
                 # Если есть пересечение полигона пожара с полигоном лесного квартала
                 if fire_polygon.intersects(forest_district_polygon):
+                    fd_municipality = forest_district_item["name_in"]
+                    fd_forest_plot = forest_district_item["uch_l_ru"]
+                    fd_dacha = forest_district_item["dacha_ru"]
+                    fd_kv = forest_district_item["kv"]
+
                     # Формирование строки с лесными кварталами затронутых пожарами
                     if forest_districts == "":
-                        forest_districts = str([forest_district_item["name_in"],
-                                                forest_district_item["dacha_ru"], forest_district_item["kv"]])
+                        forest_districts = str([fd_municipality, fd_forest_plot, fd_dacha, fd_kv])
                     else:
-                        forest_districts += ", " + str([forest_district_item["name_in"],
-                                                        forest_district_item["dacha_ru"], forest_district_item["kv"]])
-                    # Обход данных по классам опасностей лесов
-                    for forest_hazard_classes_item in forest_hazard_classes_dict.values():
-                        if forest_hazard_classes_item["municipality"] == forest_district_item["name_in"] and \
-                                forest_hazard_classes_item["dacha"] == forest_district_item["dacha_ru"] and \
-                                forest_hazard_classes_item["forest_plot"] == forest_district_item["uch_l_ru"]:
-                            for forest_district_number in forest_hazard_classes_item["forest_districts"]:
-                                if int(forest_district_number) == int(forest_district_item["kv"]):
-                                    # Формирование списка определенных классов опасности лесов
-                                    if not str(forest_hazard_classes_item["hazard_class"]) in forest_hazard_classes:
-                                        forest_hazard_classes.append(str(forest_hazard_classes_item["hazard_class"]))
+                        forest_districts += ", " + str([fd_municipality, fd_forest_plot, fd_dacha, fd_kv])
+
+                    #
+                    if str(fd_municipality) != "nan":
+                        fd_municipality = re.sub(r"[-']", "", fd_municipality)
+                        fd_municipality = fd_municipality.lower()
+                    else:
+                        flag.append(3)
+                    if str(fd_forest_plot) != "nan":
+                        fd_forest_plot = re.sub(r"[-']", "", fd_forest_plot)
+                        fd_forest_plot = fd_forest_plot.lower()
+                    else:
+                        flag.append(5)
+                    if str(fd_dacha) != "nan":
+                        fd_dacha = re.sub(r"[-']", "", fd_dacha)
+                        fd_dacha = fd_dacha.lower()
+                    else:
+                        flag.append(7)
+
+                    if str(fd_municipality) != "nan" and str(fd_forest_plot) != "nan" and str(fd_dacha) != "nan":
+                        exist_municipality = False
+                        exist_forest_plot = False
+                        exist_dacha = False
+                        exist_kv = False
+
+                        # Обход данных по классам опасностей лесов
+                        for forest_hazard_classes_item in forest_hazard_classes_dict.values():
+                            fhc_municipality = forest_hazard_classes_item["municipality"]
+                            fhc_municipality = re.sub(r"[-']", "", fhc_municipality)
+                            fhc_municipality = fhc_municipality.lower()
+
+                            fhc_forest_plot = forest_hazard_classes_item["forest_plot"]
+                            fhc_forest_plot = re.sub(r"[-']", "", fhc_forest_plot)
+                            fhc_forest_plot = fhc_forest_plot.lower()
+
+                            fhc_dacha = forest_hazard_classes_item["dacha"]
+                            fhc_dacha = re.sub(r"[-']", "", fhc_dacha)
+                            fhc_dacha = fhc_dacha.lower()
+
+                            if fhc_municipality == fd_municipality:
+                                exist_municipality = True
+                            if fhc_forest_plot == fd_forest_plot:
+                                exist_forest_plot = True
+                            if fhc_dacha == fd_dacha:
+                                exist_dacha = True
+
+                            # Вычисление расстояния Левенштейна
+                            levenshtein_distance_for_municipality = distance(fhc_municipality, fd_municipality)
+                            # Вычисление расстояния Левенштейна
+                            levenshtein_distance_for_forest_plot = distance(fhc_forest_plot, fd_forest_plot)
+                            # Вычисление расстояния Левенштейна
+                            levenshtein_distance_for_dacha = distance(fhc_dacha, fd_dacha)
+                            total_levenshtein_distance = levenshtein_distance_for_municipality + \
+                                                         levenshtein_distance_for_forest_plot + \
+                                                         levenshtein_distance_for_dacha
+                            if total_levenshtein_distance < 4:
+                                for forest_district_number in forest_hazard_classes_item["forest_districts"]:
+                                    if str(fd_kv) and str(forest_district_number):
+                                        if int(forest_district_number) == int(fd_kv):
+                                            # Формирование списка определенных классов опасности лесов
+                                            forest_hazard_classes.append(str(forest_hazard_classes_item["hazard_class"]))
+                                            flag.append(0)
+                                            exist_kv = True
+
+                        if not exist_kv:
+                            flag.append(1)
+                        if not exist_municipality:
+                            flag.append(2)
+                        if not exist_forest_plot:
+                            flag.append(4)
+                        if not exist_dacha:
+                            flag.append(6)
             except WKBReadingError:
                 print("Не удалось создать геометрию из-за ошибок при чтении.")
+
         # Формирование данных по лесным кварталам
         fire_item["kv"] = forest_districts
         # Формирование данных по классам опасности лесов
-        fire_item["forest_hazard_classes"] = str(forest_hazard_classes)
-        print("Классы опасности: " + fire_item["forest_hazard_classes"])
+        if forest_hazard_classes:
+            fire_item["forest_hazard_classes"] = str(forest_hazard_classes)
+            defined_hazard_class_number += 1
+            print("Классы опасности: " + fire_item["forest_hazard_classes"])
+
+        #
+        fire_item["flag"] = str(flag)
+
         print(str(fire_item["fire_id"]) + ": " + str(datetime.now() - start_time))
+
+    # Вычисление точности определения класса опасности
+    accuracy = defined_hazard_class_number / fire_number
+    print("Accuracy: " + str(accuracy))
+
     print("Full time: " + str(datetime.now() - start_full_time))
 
     return fires_dict
