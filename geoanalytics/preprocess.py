@@ -99,10 +99,15 @@ def get_fires_dict(fires_csv_data):
         item["U"] = row["U"]
         item["T"] = row["T"]
         item["Td"] = row["Td"]
+        item["DD"] = row["DD"]
+        item["WW"] = row["WW"]
+        item["W1"] = row["W1"]
+        item["W2"] = row["W2"]
+        item["Po"] = row["Po"]
         item["area"] = row["area"]
         item["distance_to_car_road"] = row["distance_to_car_road"]
         item["distance_to_railway"] = row["distance_to_railway"]
-        # item["distance_to_river"] = row["distance_to_river"]
+        item["distance_to_river"] = row["distance_to_river"]  # Необходимо отключить, т.к. время подсчета очень большое
         item["distance_to_lake"] = row["distance_to_lake"]
         result[result_id] = item
         result_id += 1
@@ -297,6 +302,11 @@ def get_weather_dict(weather_csv_data):
         item["U"] = row["U"]
         item["T"] = row["T"]
         item["Td"] = row["Td"]
+        item["DD"] = row["DD"]
+        item["WW"] = row["WW"]
+        item["W1"] = row["W1"]
+        item["W2"] = row["W2"]
+        item["Po"] = row["Po"]
         result[result_id] = item
         result_id += 1
 
