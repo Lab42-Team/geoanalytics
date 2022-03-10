@@ -46,6 +46,11 @@ def determine_weather_characteristics(fires_dict):
                         fire_item["U"] = weather_item["U"]
                         fire_item["T"] = weather_item["T"]
                         fire_item["Td"] = weather_item["Td"]
+                        fire_item["DD"] = weather_item["DD"]
+                        fire_item["WW"] = weather_item["WW"]
+                        fire_item["W1"] = weather_item["W1"]
+                        fire_item["W2"] = weather_item["W2"]
+                        fire_item["Po"] = weather_item["Po"]
         print(str(fire_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
     print("***************************************************")
     print("Full time: " + str(datetime.now() - start_full_time))
