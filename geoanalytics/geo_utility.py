@@ -1,18 +1,17 @@
 import re
-
-import numpy as np
 import pyproj
 import shapely
 import shapely.wkb
 import shapely.wkt
-from Levenshtein._levenshtein import distance
 from pyproj import Geod
 from shapely import ops
 from shapely.geometry import Point
 from shapely.ops import cascaded_union
 from shapely.errors import WKBReadingError
 from datetime import datetime
+from Levenshtein._levenshtein import distance
 import geoanalytics.utility as utl
+import geoanalytics.preprocess as gp
 
 
 def reproject(geom):
@@ -194,25 +193,37 @@ def determine_nearest_weather_station(fires_dict, weather_stations_dict):
     """
     start_full_time = datetime.now()
     for fire_item in fires_dict.values():
+        weather_stations = dict()
         # Получение точки пожара по координатам
         fire_point = Point(float(fire_item["lat"]), float(fire_item["lon"]))
-        # Получение минимального расстояния от точки пожара до точки метеостанции
-        min_distance = 99999
-        weather_station_id = None
-        weather_station_name = None
+        # Определение расстояния от метеостанции к текущему пожару по координатам
         for geom_item in weather_stations_dict.values():
             try:
+                # Получение точки метеостанции по координатам
                 weather_station_point = Point(float(geom_item["latitude"]), float(geom_item["longitude"]))
-                current_distance = fire_point.distance(weather_station_point)
-                if min_distance > current_distance:
-                    min_distance = current_distance
-                    weather_station_id = geom_item["weather_station_id"]
-                    weather_station_name = geom_item["weather_station_name"]
+                # Формирование словаря расстояний до метеостанций
+                weather_stations[fire_point.distance(weather_station_point)] = [int(geom_item["weather_station_id"]),
+                                                                                geom_item["weather_station_name"]]
             except WKBReadingError:
                 print("Не удалось создать геометрию из-за ошибок при чтении.")
-        # Формирование данных по метеостанции
-        fire_item["weather_station_id"] = int(weather_station_id)
-        fire_item["weather_station_name"] = weather_station_name
+        # Сортировка метеостанций по расстояниям
+        weather_stations = dict(sorted(weather_stations.items(), key=lambda item: item[0]))
+        # Обход метеостанций
+        for weather_station in weather_stations.values():
+            exist_weather_station = False
+            # Получение списка csv-файлов с информацией о погоде из каталога "weather_data"
+            weather_file_list = gp.get_csv_file_list(gp.WEATHER_DIR_NAME)
+            # Обход списка csv-файлов с информацией о погоде
+            for weather_file_name in weather_file_list:
+                # Если csv-файл относится к искомой метеостанции
+                if weather_file_name.find(str(weather_station[0])) != -1:
+                    exist_weather_station = True
+            if exist_weather_station:
+                # Формирование данных по метеостанции
+                fire_item["weather_station_id"] = int(weather_station[0])
+                fire_item["weather_station_name"] = weather_station[1]
+                break
+
     print("Full time: " + str(datetime.now() - start_full_time))
 
     return fires_dict
@@ -553,6 +564,40 @@ def delete_fire(fires_dict):
             deleted_fires.append(key)
         else:
             saved_fires[item["new_fire_id"]] = key
+    # Удаление пожаров
+    for key in deleted_fires:
+        fires_dict.pop(key)
+    print("***************************************************")
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return fires_dict
+
+
+def delete_winter_fires(fires_dict):
+    """
+    Удаление пожаров не входящих в пожароопасный период (зимний период).
+    :param fires_dict: словарь с данными по пожарам
+    :return: новый словарь с данными по пожарам
+    """
+    start_full_time = datetime.now()
+    deleted_fires = []
+    for current_key, current_item in fires_dict.items():
+        start_time = datetime.now()
+        current_date_str = current_item["dt"].split(" ")[0]
+        current_date_obj = datetime.strptime(current_date_str, "%d.%m.%Y")
+        if current_date_obj < datetime.strptime("01.04.2020", "%d.%m.%Y"):
+            exist_intersection = False
+            for key, item in fires_dict.items():
+                date_str = item["dt"].split(" ")[0]
+                date_obj = datetime.strptime(date_str, "%d.%m.%Y")
+                if date_obj >= datetime.strptime("01.04.2020", "%d.%m.%Y"):
+                    shape1 = shapely.wkt.loads(current_item["geometry"])
+                    shape2 = shapely.wkt.loads(item["geometry"])
+                    if shape1.intersects(shape2):
+                        exist_intersection = True
+            if not exist_intersection:
+                deleted_fires.append(current_key)
+            print(str(current_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
     # Удаление пожаров
     for key in deleted_fires:
         fires_dict.pop(key)
