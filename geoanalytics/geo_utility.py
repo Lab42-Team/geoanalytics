@@ -360,44 +360,47 @@ def determine_forest_hazard_classes(fires_dict, forest_districts_dict, forest_ha
     return fires_dict
 
 
-def determine_hazard_classes_by_weather(fires_dict, weather_conditions_dict):
+def determine_hazard_classes_by_weather(fires_dict):
     """
     Определение класса пожарной опасности по условиям погоды.
     :param fires_dict: словарь с данными по пожарам
-    :param weather_conditions_dict: словарь с данными по погодным условиям
     :return: дополненный словарь с данными по пожарам
     """
     start_full_time = datetime.now()
     for fire_item in fires_dict.values():
         start_time = datetime.now()
-        current_station_name = None
-        for weather_conditions_item in weather_conditions_dict.values():
-            if fire_item["weather_station_name"].lower() == weather_conditions_item["station"].lower():
-                current_station_name = fire_item["weather_station_name"]
-                break
-        if current_station_name is not None:
+        weather_conditions_dict = dict()
+        # Получение списка csv-файлов с информацией по погодным условиям (прогноз погоды)
+        weather_conditions_list = gp.get_csv_file_list(gp.WEATHER_CONDITIONS_DIR_NAME)
+        # Обход списка csv-файлов с информацией по погодным условиям (прогноз погоды)
+        for weather_conditions_file_name in weather_conditions_list:
+            # Если csv-файл относится к искомой метеостанции
+            if weather_conditions_file_name.find(str(fire_item["weather_station_id"])) != -1:
+                # Получение данных по погодным условиям (прогноз погоды)
+                weather_conditions_csv_data = gp.get_csv_data(weather_conditions_file_name,
+                                                              gp.WEATHER_CONDITIONS_DIR_NAME)
+                weather_conditions_dict = gp.get_weather_conditions_dict(weather_conditions_csv_data)
+        if weather_conditions_dict:
             weather_datetime = []
             for weather_conditions_item in weather_conditions_dict.values():
-                if current_station_name.lower() == weather_conditions_item["station"].lower():
-                    weather_datetime.append(datetime.strptime(str(weather_conditions_item["datetime"]),
-                                                              "%d.%m.%Y %H:%M"))
+                weather_datetime.append(datetime.strptime(str(weather_conditions_item["datetime"]),
+                                                          "%Y-%m-%d %H:%M:%S"))
             nearest_datetime = utl.nearest(weather_datetime, datetime.strptime(fire_item["dt"], "%d.%m.%Y %H:%M"))
             for weather_conditions_item in weather_conditions_dict.values():
-                if fire_item["weather_station_name"].lower() == weather_conditions_item["station"].lower() and \
-                        datetime.strptime(weather_conditions_item["datetime"], '%d.%m.%Y %H:%M') == nearest_datetime:
+                if datetime.strptime(weather_conditions_item["datetime"], "%Y-%m-%d %H:%M:%S") == nearest_datetime:
                     # Определение класса опасности
-                    fire_item["hazard_class"] = ""
+                    fire_item["weather_hazard_class"] = ""
                     if 0 <= float(weather_conditions_item["kp"]) <= 300:
-                        fire_item["hazard_class"] = "I"
+                        fire_item["weather_hazard_class"] = "I"
                     if 301 <= float(weather_conditions_item["kp"]) <= 1000:
-                        fire_item["hazard_class"] = "II"
+                        fire_item["weather_hazard_class"] = "II"
                     if 1001 <= float(weather_conditions_item["kp"]) <= 4000:
-                        fire_item["hazard_class"] = "III"
+                        fire_item["weather_hazard_class"] = "III"
                     if 4001 <= float(weather_conditions_item["kp"]) <= 10000:
-                        fire_item["hazard_class"] = "IV"
+                        fire_item["weather_hazard_class"] = "IV"
                     if float(weather_conditions_item["kp"]) > 10000:
-                        fire_item["hazard_class"] = "V"
-                    print("Класс опасности: " + fire_item["hazard_class"])
+                        fire_item["weather_hazard_class"] = "V"
+                    print("Класс опасности: " + fire_item["weather_hazard_class"])
         else:
             print("Класс опасности не определен!")
         print(str(fire_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
