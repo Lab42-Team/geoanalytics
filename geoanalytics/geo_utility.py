@@ -218,7 +218,15 @@ def determine_nearest_weather_station(fires_dict, weather_stations_dict):
                 # Если csv-файл относится к искомой метеостанции
                 if weather_file_name.find(str(weather_station[0])) != -1:
                     exist_weather_station = True
-            if exist_weather_station:
+            exist_weather_conditions_station = False
+            # Получение списка csv-файлов с информацией о погоде из каталога "kp_po_forcast"
+            weather_conditions_file_list = gp.get_csv_file_list(gp.WEATHER_CONDITIONS_DIR_NAME)
+            # Обход списка csv-файлов с информацией о погоде
+            for weather_conditions_file_name in weather_conditions_file_list:
+                # Если csv-файл относится к искомой метеостанции
+                if weather_conditions_file_name.find(str(weather_station[0])) != -1:
+                    exist_weather_conditions_station = True
+            if exist_weather_station and exist_weather_conditions_station:
                 # Формирование данных по метеостанции
                 fire_item["weather_station_id"] = int(weather_station[0])
                 fire_item["weather_station_name"] = weather_station[1]
@@ -337,6 +345,8 @@ def determine_forest_hazard_classes(fires_dict, forest_districts_dict, forest_ha
                             flag.append(6)
             except WKBReadingError:
                 print("Не удалось создать геометрию из-за ошибок при чтении.")
+            except UnicodeEncodeError:
+                print("Проблема с кодировкой.")
 
         # Формирование данных по лесным кварталам
         fire_item["kv"] = forest_districts
@@ -346,7 +356,6 @@ def determine_forest_hazard_classes(fires_dict, forest_districts_dict, forest_ha
             defined_hazard_class_number += 1
             print("Классы опасности: " + fire_item["forest_hazard_classes"])
 
-        #
         fire_item["flag"] = str(flag)
 
         print(str(fire_item["fire_id"]) + ": " + str(datetime.now() - start_time))
@@ -390,7 +399,7 @@ def determine_hazard_classes_by_weather(fires_dict):
                 if datetime.strptime(weather_conditions_item["datetime"], "%Y-%m-%d %H:%M:%S") == nearest_datetime:
                     # Определение класса опасности
                     fire_item["weather_hazard_class"] = ""
-                    if 0 <= float(weather_conditions_item["kp"]) <= 300:
+                    if float(weather_conditions_item["kp"]) <= 300:
                         fire_item["weather_hazard_class"] = "I"
                     if 301 <= float(weather_conditions_item["kp"]) <= 1000:
                         fire_item["weather_hazard_class"] = "II"
@@ -404,6 +413,120 @@ def determine_hazard_classes_by_weather(fires_dict):
         else:
             print("Класс опасности не определен!")
         print(str(fire_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return fires_dict
+
+
+def determine_forest_types(fires_dict, forest_districts_dict, forest_types_dict):
+    """
+    Определение классов опасности лесов на основе лесных кварталов, которые были затронуты пожарами.
+    :param fires_dict: словарь с данными по пожарам
+    :param forest_districts_dict: словарь с данными по лесным кварталам
+    :param forest_types_dict: словарь с данными по типам лесов
+    :return: дополненный словарь с данными по пожарам
+    """
+    start_full_time = datetime.now()
+    defined_type_number = 0
+    fire_number = 0
+    for fire_item in fires_dict.values():
+        start_time = datetime.now()
+        fire_number += 1
+        # Получение полигона пожара
+        fire_polygon = shapely.wkb.loads(fire_item["poly"], hex=True)
+        forest_districts = ""
+        forest_zones = []
+        forest_seed_zoning_zones = []
+        for forest_district_item in forest_districts_dict.values():
+            try:
+                # Получение полигона лесного квартала
+                forest_district_polygon = shapely.wkb.loads(forest_district_item["geom"], hex=True)
+                # Если есть пересечение полигона пожара с полигоном лесного квартала
+                if fire_polygon.intersects(forest_district_polygon):
+                    fd_municipality = forest_district_item["name_in"]
+                    fd_forest_plot = forest_district_item["uch_l_ru"]
+                    fd_dacha = forest_district_item["dacha_ru"]
+                    fd_kv = forest_district_item["kv"]
+
+                    # Формирование строки с лесными кварталами затронутых пожарами
+                    if forest_districts == "":
+                        forest_districts = str([fd_municipality, fd_forest_plot, fd_dacha, fd_kv])
+                    else:
+                        forest_districts += ", " + str([fd_municipality, fd_forest_plot, fd_dacha, fd_kv])
+
+                    if str(fd_municipality) != "nan":
+                        fd_municipality = re.sub(r"[-']", "", fd_municipality)
+                        fd_municipality = fd_municipality.lower()
+                    if str(fd_forest_plot) != "nan":
+                        fd_forest_plot = re.sub(r"[-']", "", fd_forest_plot)
+                        fd_forest_plot = fd_forest_plot.lower()
+                    if str(fd_dacha) != "nan":
+                        fd_dacha = re.sub(r"[-']", "", fd_dacha)
+                        fd_dacha = fd_dacha.lower()
+
+                    if str(fd_municipality) != "nan" and str(fd_forest_plot) != "nan" and str(fd_dacha) != "nan" and \
+                            str(fd_kv) != "nan":
+                        # Обход данных по типам лесов
+                        for forest_types_item in forest_types_dict.values():
+                            fhc_municipality = forest_types_item["name_in"]
+                            fhc_forest_plot = forest_types_item["uch_l_ru"]
+                            fhc_dacha = forest_types_item["dacha_ru"]
+
+                            if str(fhc_municipality) != "nan":
+                                fhc_municipality = forest_types_item["name_in"]
+                                fhc_municipality = re.sub(r"[-']", "", fhc_municipality)
+                                fhc_municipality = fhc_municipality.lower()
+
+                            if str(fhc_forest_plot) != "nan":
+                                fhc_forest_plot = forest_types_item["uch_l_ru"]
+                                fhc_forest_plot = re.sub(r"[-']", "", fhc_forest_plot)
+                                fhc_forest_plot = fhc_forest_plot.lower()
+
+                            if str(fhc_dacha) != "nan":
+                                fhc_dacha = forest_types_item["dacha_ru"]
+                                fhc_dacha = re.sub(r"[-']", "", fhc_dacha)
+                                fhc_dacha = fhc_dacha.lower()
+
+                            if str(fhc_municipality) != "nan" and str(fhc_forest_plot) != "nan" and \
+                                    str(fhc_dacha) != "nan":
+                                # Вычисление расстояния Левенштейна
+                                levenshtein_distance_for_municipality = distance(fhc_municipality, fd_municipality)
+                                # Вычисление расстояния Левенштейна
+                                levenshtein_distance_for_forest_plot = distance(fhc_forest_plot, fd_forest_plot)
+                                # Вычисление расстояния Левенштейна
+                                levenshtein_distance_for_dacha = distance(fhc_dacha, fd_dacha)
+                                total_levenshtein_distance = levenshtein_distance_for_municipality + \
+                                                             levenshtein_distance_for_forest_plot + \
+                                                             levenshtein_distance_for_dacha
+                                if total_levenshtein_distance < 4:
+                                    for forest_type_number in forest_types_item["kv"]:
+                                        if str(fd_kv) and str(forest_type_number) and str(forest_type_number) != "nan":
+                                            if int(forest_type_number) == int(fd_kv):
+                                                # Формирование списка определенных типов лесов
+                                                forest_zones.append(str(forest_types_item["forest_zone"]))
+                                                forest_seed_zoning_zones.append(str(
+                                                    forest_types_item["forest_seed_zoning_zone"]))
+            except WKBReadingError:
+                print("Не удалось создать геометрию из-за ошибок при чтении.")
+            except UnicodeEncodeError:
+                print("Проблема с кодировкой в строке.")
+
+        # Формирование данных по типам лесов
+        if forest_zones:
+            fire_item["forest_zone"] = str(forest_zones)
+            defined_type_number += 1
+            print("forest_zone: " + fire_item["forest_zone"])
+        if forest_seed_zoning_zones:
+            fire_item["forest_seed_zoning_zones"] = str(forest_seed_zoning_zones)
+            defined_type_number += 1
+            print("forest_seed_zoning_zones: " + fire_item["forest_seed_zoning_zones"])
+
+        print(str(fire_item["fire_id"]) + ": " + str(datetime.now() - start_time))
+
+    # Вычисление точности определения
+    accuracy = defined_type_number / fire_number
+    print("Accuracy: " + str(accuracy))
+
     print("Full time: " + str(datetime.now() - start_full_time))
 
     return fires_dict
@@ -537,6 +660,8 @@ def delete_fire_by_forest_district(fires_dict, forest_districts_dict):
                     break
             except WKBReadingError:
                 print("Не удалось создать геометрию из-за ошибок при чтении.")
+            except UnicodeEncodeError:
+                print("Проблема с кодировкой в строке: " + str(forest_district_key))
         if not intersection:
             for key, item in fires_dict.items():
                 if item["new_fire_id"] == fire_item["new_fire_id"]:
@@ -588,12 +713,12 @@ def delete_winter_fires(fires_dict):
         start_time = datetime.now()
         current_date_str = current_item["dt"].split(" ")[0]
         current_date_obj = datetime.strptime(current_date_str, "%d.%m.%Y")
-        if current_date_obj < datetime.strptime("01.04.2020", "%d.%m.%Y"):
+        if current_date_obj < datetime.strptime("01.04.2019", "%d.%m.%Y"):
             exist_intersection = False
             for key, item in fires_dict.items():
                 date_str = item["dt"].split(" ")[0]
                 date_obj = datetime.strptime(date_str, "%d.%m.%Y")
-                if date_obj >= datetime.strptime("01.04.2020", "%d.%m.%Y"):
+                if date_obj >= datetime.strptime("01.04.2019", "%d.%m.%Y"):
                     shape1 = shapely.wkt.loads(current_item["geometry"])
                     shape2 = shapely.wkt.loads(item["geometry"])
                     if shape1.intersects(shape2):
