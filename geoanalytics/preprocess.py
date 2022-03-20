@@ -7,8 +7,9 @@ from pathlib import Path
 # Каталоги с исходными данными
 DATA_DIR_NAME = "data"
 WEATHER_DIR_NAME = "weather_data"
+WEATHER_CONDITIONS_DIR_NAME = "kp_po_forcast"
 # Названия исходных csv-файлов
-FIRE_CSV_FILE = "data-2020.csv"  # "fires_in_region_2017.csv"
+FIRE_CSV_FILE = "data-2019.csv"  # "fires_in_region_2017.csv"
 CAR_ROADS_CSV_FILE = "gis_bogdanov.dorogiavtomobiln.csv"
 RAILWAYS_CSV_FILE = "gis_bogdanov.dorogizheleznyeb.csv"
 RIVERS_CSV_FILE = "gis_bogdanov.rekibakalskiregi.csv"
@@ -20,7 +21,7 @@ FOREST_DISTRICTS_CSV_FILE = "user_schema.lesnye_kv_3051.csv"
 FOREST_HAZARD_CLASSES_CSV_FILE = "forest_hazard_classes.csv"
 NOT_FIRES_CSV_FILE = "not_fires.csv"  # Данные по не пожарам
 LOCALITIES_CSV_FILE = "localities.csv"  # Данные по населенным пунктам
-WEATHER_CONDITIONS_CSV_FILE = "kp_po_forcast.csv"  # Данные по погодным условиям (прогноз) и вычисленной опасности
+FOREST_TYPES_PROCESSED_CSV_FILE = "forest_types_processed.csv"  # Данные по видам лесов
 # Название целевого (выходного) csv-файла
 OUTPUT_FILE_NAME = "data.csv"
 
@@ -107,8 +108,13 @@ def get_fires_dict(fires_csv_data):
         item["area"] = row["area"]
         item["distance_to_car_road"] = row["distance_to_car_road"]
         item["distance_to_railway"] = row["distance_to_railway"]
-        item["distance_to_river"] = row["distance_to_river"]  # Необходимо отключить, т.к. время подсчета очень большое
+        # item["distance_to_river"] = row["distance_to_river"]  # Необходимо отключить, т.к. время подсчета очень большое
         item["distance_to_lake"] = row["distance_to_lake"]
+        item["kv"] = row["kv"]
+        item["forest_hazard_classes"] = row["forest_hazard_classes"]
+        item["flag"] = row["flag"]
+        item["forest_zone"] = row["forest_zone"]
+        item["forest_seed_zoning_zones"] = row["forest_seed_zoning_zones"]
         result[result_id] = item
         result_id += 1
 
@@ -334,6 +340,28 @@ def get_forest_districts_dict(forest_districts_csv_data):
     return result
 
 
+def get_forest_types_dict(forest_types_csv_data):
+    """
+    Получение словаря с необходимой информацией по типам лесов из данных csv-файла электронной таблицы.
+    :param forest_types_csv_data: данные csv-файла электронной таблицы по типам лесов
+    :return: словарь с информацией по типам лесов
+    """
+    result = dict()
+    result_id = 1
+    for index, row in forest_types_csv_data.iterrows():
+        item = dict()
+        item["name_in"] = row[0]
+        item["uch_l_ru"] = row[2]
+        item["dacha_ru"] = row[3]
+        item["forest_zone"] = row[4]
+        item["forest_seed_zoning_zone"] = row[5]
+        item["kv"] = str(row[6]).split(",")
+        result[result_id] = item
+        result_id += 1
+
+    return result
+
+
 def get_forest_hazard_classes_dict(forest_hazard_classes_csv_data):
     """
     Получение словаря с необходимой информацией по классам опасности лесов из данных csv-файла электронной таблицы.
@@ -365,7 +393,6 @@ def get_weather_conditions_dict(weather_conditions_csv_data):
     result_id = 1
     for index, row in weather_conditions_csv_data.iterrows():
         item = dict()
-        item["station"] = row[0]
         item["datetime"] = row[3]
         item["kp"] = row[10]
         result[result_id] = item
