@@ -22,6 +22,7 @@ FOREST_HAZARD_CLASSES_CSV_FILE = "forest_hazard_classes.csv"
 NOT_FIRES_CSV_FILE = "not_fires.csv"  # Данные по не пожарам
 LOCALITIES_CSV_FILE = "localities.csv"  # Данные по населенным пунктам
 FOREST_TYPES_PROCESSED_CSV_FILE = "forest_types_processed.csv"  # Данные по видам лесов
+SNOWINESS_CSV_FILE = "snowiness.csv"  # Данные по снегу
 # Название целевого (выходного) csv-файла
 OUTPUT_FILE_NAME = "data.csv"
 
@@ -115,6 +116,7 @@ def get_fires_dict(fires_csv_data):
         item["flag"] = row["flag"]
         item["forest_zone"] = row["forest_zone"]
         item["forest_seed_zoning_zones"] = row["forest_seed_zoning_zones"]
+        item["weather_hazard_class"] = row["weather_hazard_class"]
         result[result_id] = item
         result_id += 1
 
@@ -395,6 +397,26 @@ def get_weather_conditions_dict(weather_conditions_csv_data):
         item = dict()
         item["datetime"] = row[3]
         item["kp"] = row[10]
+        result[result_id] = item
+        result_id += 1
+
+    return result
+
+
+def get_snowiness_dict(snowiness_csv_data):
+    """
+    Получение словаря с необходимой информацией по снегу.
+    :param snowiness_csv_data: данные csv-файла электронной таблицы по снегу
+    :return: словарь с информацией по снегу
+    """
+    result = dict()
+    result_id = 1
+    for index, row in snowiness_csv_data.iterrows():
+        item = dict()
+        item["station_id"] = row[0]
+        item["start"] = row[2]
+        item["end"] = row[3]
+        item["percent"] = row[17]
         result[result_id] = item
         result_id += 1
 
