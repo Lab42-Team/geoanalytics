@@ -532,6 +532,43 @@ def determine_forest_types(fires_dict, forest_districts_dict, forest_types_dict)
     return fires_dict
 
 
+def determine_snowiness(fires_dict, snowiness_dict):
+    """
+    Определение снежности зимы по метеостанции.
+    :param fires_dict: словарь с данными по пожарам
+    :param snowiness_dict: словарь с данными по снегу
+    :return: дополненный словарь с данными по пожарам
+    """
+    start_full_time = datetime.now()
+    for fire_item in fires_dict.values():
+        start_time = datetime.now()
+        # Получение даты и времени пожара
+        fire_datetime = datetime.strptime(fire_item["dt"], "%d.%m.%Y %H:%M")
+        # Обход данных по снегу
+        for snowiness_item in snowiness_dict.values():
+            # Если сходятся номера метеостанций
+            if int(fire_item["weather_station_id"]) == int(snowiness_item["station_id"]):
+                # Получение даты и времени окончания зимы
+                end_datetime = datetime.strptime(snowiness_item["end"], "%Y-%m-%d")
+                # Если дата и время пожара попадает за определенный год
+                if fire_datetime.year == end_datetime.year:
+                    # Определение снежности зимы в зависимости от процентов
+                    fire_item["snowiness"] = ""
+                    if float(snowiness_item["percent"]) < -25:
+                        fire_item["snowiness"] = "малоснежная"
+                    if -25 <= float(snowiness_item["percent"]) <= 25:
+                        fire_item["snowiness"] = "норма"
+                    if float(snowiness_item["percent"]) > 25:
+                        fire_item["snowiness"] = "многоснежная"
+                    if 90 <= float(snowiness_item["percent"]) <= 100:
+                        fire_item["snowiness"] = "норма"
+                    print("Снежность зимы: " + fire_item["snowiness"])
+        print(str(fire_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return fires_dict
+
+
 def identify_fire(fires_dict):
     """
     Идентификация пожаров на основе пересечения их полигонов.
