@@ -237,7 +237,7 @@ def determine_nearest_weather_station(fires_dict, weather_stations_dict):
     return fires_dict
 
 
-def determine_forest_hazard_classes(fires_dict, forest_districts_dict, forest_hazard_classes_dict):
+def determine_hazard_classes_by_forest_districts(fires_dict, forest_districts_dict, forest_hazard_classes_dict):
     """
     Определение классов опасности лесов на основе лесных кварталов, которые были затронуты пожарами.
     :param fires_dict: словарь с данными по пожарам
