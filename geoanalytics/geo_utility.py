@@ -569,6 +569,49 @@ def determine_snowiness(fires_dict, snowiness_dict):
     return fires_dict
 
 
+def determine_dry_thunderstorm(fires_dict):
+    """
+    Определение сухой грозы по погодным условиям для каждого пожара.
+    :param fires_dict: словарь с данными по пожарам
+    :return: дополненный словарь с данными по пожарам
+    """
+    start_full_time = datetime.now()
+    for fire_item in fires_dict.values():
+        start_time = datetime.now()
+        weather_dict = dict()
+        # Получение списка csv-файлов с информацией по метеостанциям (погоде)
+        weather_file_list = gp.get_csv_file_list(gp.WEATHER_DIR_NAME)
+        # Обход списка csv-файлов с информацией по метеостанциям (погоде)
+        for weather_file_name in weather_file_list:
+            # Если csv-файл относится к искомой метеостанции
+            if weather_file_name.find(str(fire_item["weather_station_id"])) != -1:
+                # Получение данных по метеостанции (погоде)
+                weather_csv_data = gp.get_csv_data(weather_file_name, gp.WEATHER_DIR_NAME)
+                weather_dict = gp.get_weather_dict(weather_csv_data)
+        fire_item["thunderstorm"] = ""
+        # Получение даты и времени пожара
+        fire_datetime = datetime.strptime(fire_item["dt"], "%d.%m.%Y %H:%M")
+        # Обход по данным метеостанции (погоде)
+        for weather_item in weather_dict.values():
+            # Получение даты и времени замера погоды
+            weather_datetime = datetime.strptime(weather_item["datetime"], "%d.%m.%Y %H:%M")
+            # Если дата пожара совпадает с датой замера погоды
+            if fire_datetime.date() == weather_datetime.date():
+                # Объединение условий погоды в одну строку
+                weather_string = str(weather_item["WW"]).lower() + str(weather_item["W1"]).lower() + \
+                                 str(weather_item["W2"]).lower()
+                # Поиск слова "гроза" без частей "дожд" и "ливень" в строке
+                if weather_string.find("гроза") != -1 and weather_string.find("дожд") == -1 and \
+                        weather_string.find("ливень") == -1:
+                    # Формирование значения "сухая гроза" если нет осадков
+                    if str(weather_item["RRR"]).lower().find("осадков нет") != -1 or str(weather_item["RRR"]) == "nan":
+                        fire_item["thunderstorm"] = "сухая гроза"
+        print(str(fire_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return fires_dict
+
+
 def identify_fire(fires_dict):
     """
     Идентификация пожаров на основе пересечения их полигонов.

@@ -117,6 +117,12 @@ def get_fires_dict(fires_csv_data):
         item["forest_zone"] = row["forest_zone"]
         item["forest_seed_zoning_zones"] = row["forest_seed_zoning_zones"]
         item["weather_hazard_class"] = row["weather_hazard_class"]
+        item["snowiness"] = row["snowiness"]
+        item["snowiness-uncertainty"] = row["snowiness-uncertainty"]
+        item["name_locality"] = row["name_locality"]
+        item["name_MO_locality"] = row["name_MO_locality"]
+        item["municipalities_locality"] = row["municipalities_locality"]
+        item["distance_to_locality"] = row["distance_to_locality"]
         result[result_id] = item
         result_id += 1
 
