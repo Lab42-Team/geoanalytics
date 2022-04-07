@@ -4,9 +4,8 @@ import fnmatch
 import pandas as pd
 from pathlib import Path
 
-# Каталоги с исходными данными
-from shapely.geometry import Point
 
+# Каталоги с исходными данными
 DATA_DIR_NAME = "data"
 WEATHER_DIR_NAME = "weather_data"
 WEATHER_CONDITIONS_DIR_NAME = "kp_po_forcast"
@@ -324,6 +323,8 @@ def get_weather_dict(weather_csv_data):
         item["W1"] = row["W1"]
         item["W2"] = row["W2"]
         item["Po"] = row["Po"]
+        item["Tn"] = row["Tn"]
+        item["Tx"] = row["Tx"]
         result[result_id] = item
         result_id += 1
 
@@ -370,7 +371,7 @@ def get_forest_districts_processed_dict(forest_districts_processed_csv_data):
         item["kv"] = row[3]
         item["geom"] = row[4]
         item["hazard_classes"] = row[5]
-        item["weather_stations"] = row[6]
+        item["weather_stations"] = str(row[6]).split(",")
         result[result_id] = item
         result_id += 1
 
