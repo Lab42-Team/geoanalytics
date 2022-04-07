@@ -5,6 +5,8 @@ import pandas as pd
 from pathlib import Path
 
 # Каталоги с исходными данными
+from shapely.geometry import Point
+
 DATA_DIR_NAME = "data"
 WEATHER_DIR_NAME = "weather_data"
 WEATHER_CONDITIONS_DIR_NAME = "kp_po_forcast"
@@ -18,6 +20,7 @@ POPULATION_DENSITY_CSV_FILE = "gis_bogdanov.plotnostselskogo.csv"
 FORESTRY_CSV_FILE = "user_schema.lestniche_3036.csv"
 WEATHER_STATIONS_CSV_FILE = "user_schema.gidromed_3075.csv"
 FOREST_DISTRICTS_CSV_FILE = "user_schema.lesnye_kv_3051.csv"
+FOREST_DISTRICTS_PROCESSED_CSV_FILE = "user_schema.lesnye_kv_3051_processed.csv"  # Обработанные данные по кварталам
 FOREST_HAZARD_CLASSES_CSV_FILE = "forest_hazard_classes.csv"
 NOT_FIRES_CSV_FILE = "not_fires.csv"  # Данные по не пожарам
 LOCALITIES_CSV_FILE = "localities.csv"  # Данные по населенным пунктам
@@ -337,11 +340,37 @@ def get_forest_districts_dict(forest_districts_csv_data):
     result_id = 1
     for index, row in forest_districts_csv_data.iterrows():
         item = dict()
+        # Для исходного файла кварталов из ГИС
         item["name_in"] = row[0]
         item["dacha_ru"] = row[4]
         item["uch_l_ru"] = row[5]
         item["kv"] = row[11]
         item["geom"] = row[20]
+        result[result_id] = item
+        result_id += 1
+
+    return result
+
+
+def get_forest_districts_processed_dict(forest_districts_processed_csv_data):
+    """
+    Получение словаря с необходимой информацией по лесным кварталам из обработанных данных
+    csv-файла электронной таблицы.
+    :param forest_districts_processed_csv_data: обработанные данные csv-файла электронной таблицы по лесным кварталам
+    :return: словарь с информацией по лесным кварталам (обработанные)
+    """
+    result = dict()
+    result_id = 1
+    for index, row in forest_districts_processed_csv_data.iterrows():
+        item = dict()
+        # Для обработанного файла кварталов
+        item["name_in"] = row[0]
+        item["dacha_ru"] = row[1]
+        item["uch_l_ru"] = row[2]
+        item["kv"] = row[3]
+        item["geom"] = row[4]
+        item["hazard_classes"] = row[5]
+        item["weather_stations"] = row[6]
         result[result_id] = item
         result_id += 1
 
