@@ -3,6 +3,7 @@ import pyproj
 import shapely
 import shapely.wkb
 import shapely.wkt
+import haversine as hs
 from pyproj import Geod
 from shapely import ops
 from shapely.geometry import Point
@@ -885,6 +886,42 @@ def determine_hazard_classes_for_forest_districts(forest_districts_dict, forest_
     print("Full time: " + str(datetime.now() - start_full_time))
 
     return forest_districts_dict
+
+
+def determine_nearest_weather_station_to_forest_district(forest_districts_processed_dict, weather_stations_dict):
+    """
+    Определение списка ближайших метеостанций к лесному кварталу.
+    :param forest_districts_processed_dict: словарь с обработанными данными по лесным кварталам
+    :param weather_stations_dict: словарь с данными по метеостанциям
+    :return: дополненный словарь с обработанными данными по лесным кварталам
+    """
+    start_full_time = datetime.now()
+    for forest_districts_item in forest_districts_processed_dict.values():
+        weather_stations = dict()
+        try:
+            # Получение полигона лесного квартала
+            shape = shapely.wkb.loads(forest_districts_item["geom"], hex=True)
+            # Получение координат центра полигона
+            shape_center = shape.centroid
+            point1 = (shape_center.y, shape_center.x)
+            # Обход данных по метеостанциям
+            for weather_station_item in weather_stations_dict.values():
+                # Получение точки метеостанции по координатам
+                point2 = (float(weather_station_item["latitude"]), float(weather_station_item["longitude"]))
+                # Формирование словаря расстояний до метеостанций в киллометрах
+                weather_stations[int(weather_station_item["weather_station_id"])] = hs.haversine(point1, point2)
+        except WKBReadingError:
+            print("Не удалось создать геометрию из-за ошибок при чтении.")
+        except UnicodeEncodeError:
+            print("Проблема с кодировкой.")
+        # Сортировка метеостанций по расстояниям
+        weather_stations = dict(sorted(weather_stations.items(), key=lambda item: item[1]))
+        print(weather_stations)
+        # Формирование списка метеостанций строкой через запятую
+        forest_districts_item["weather_stations"] = ",".join(map(str, list(weather_stations.keys())))
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return forest_districts_processed_dict
 
 
 def identify_fire_by_dates(fires_dict):
