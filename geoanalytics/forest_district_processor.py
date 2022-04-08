@@ -7,6 +7,8 @@ from shapely.errors import WKBReadingError
 from datetime import datetime
 from Levenshtein._levenshtein import distance
 
+import geoanalytics.preprocess as gp
+
 
 def determine_hazard_classes_for_forest_districts(forest_districts_dict, forest_hazard_classes_dict):
     """
@@ -88,6 +90,7 @@ def determine_nearest_weather_station_to_forest_district(forest_districts_proces
     :return: дополненный словарь с обработанными данными по лесным кварталам
     """
     start_full_time = datetime.now()
+    # Обход лесных кварталов
     for forest_districts_item in forest_districts_processed_dict.values():
         weather_stations = dict()
         try:
@@ -111,6 +114,95 @@ def determine_nearest_weather_station_to_forest_district(forest_districts_proces
         print(weather_stations)
         # Формирование списка метеостанций строкой через запятую
         forest_districts_item["weather_stations"] = ",".join(map(str, list(weather_stations.keys())))
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return forest_districts_processed_dict
+
+
+def determine_weather_characteristics_for_forest_district(forest_districts_processed_dict, target_date):
+    """
+    Определение характеристик погоды по метеостанциям для лесных кварталов.
+    :param forest_districts_processed_dict: словарь с обработанными данными по лесным кварталам
+    :param target_date: целевая дата для поиска погоды
+    :return: дополненный словарь с обработанными данными по лесным кварталам
+    """
+    start_full_time = datetime.now()
+    forest_district_index = 0
+    # Получение списка csv-файлов с информацией о погоде из каталога "weather_data"
+    weather_file_list = gp.get_csv_file_list(gp.WEATHER_DIR_NAME)
+    # Обход лесных кварталов
+    for forest_district_item in forest_districts_processed_dict.values():
+        start_time = datetime.now()
+        forest_district_index += 1
+        if forest_district_item["name_in"] == "Bodaibinskoe" or forest_district_item["name_in"] == "Kirenskoe" or \
+                forest_district_item["name_in"] == "Kazachinsko-Lenskoe" or \
+                forest_district_item["name_in"] == "Mamskoe" or forest_district_item["name_in"] == "Ust-Kutskoe":
+            forest_district_item["RRR"] = 0
+            forest_district_item["Ff"] = []
+            forest_district_item["U"] = 0
+            forest_district_item["Td"] = []
+            forest_district_item["DD"] = []
+            forest_district_item["WW"] = []
+            forest_district_item["W1"] = []
+            forest_district_item["W2"] = []
+            forest_district_item["Po"] = 0
+            forest_district_item["Tn"] = 0
+            forest_district_item["Tx"] = 0
+            weather_characteristics = False
+            # Обход ближайших метеостанций определенных для данного квартала
+            for weather_station in forest_district_item["weather_stations"]:
+                if not weather_characteristics:
+                    # Обход списка csv-файлов с информацией о погоде
+                    for weather_file_name in weather_file_list:
+                        if not weather_characteristics:
+                            # Поиск подстроки (номера метеостанции) в названии csv-файла электронной таблицы
+                            index = weather_file_name.find(weather_station)
+                            # Если csv-файл относится к искомой метеостанции
+                            if index != -1:
+                                u = 0
+                                po = 0
+                                u_number = 0
+                                po_number = 0
+                                # Получение характеристик погоды
+                                weather_csv_data = gp.get_csv_data(weather_file_name, gp.WEATHER_DIR_NAME)
+                                weather_dict = gp.get_weather_dict(weather_csv_data)
+                                # Обход записей погоды
+                                for weather_item in weather_dict.values():
+                                    if datetime.strptime(weather_item["datetime"], "%d.%m.%Y %H:%M").date() == target_date:
+                                        weather_characteristics = True
+                                        # Формирование характеристик по погоде
+                                        if str(weather_item["RRR"]).lower().find("осадков нет") != -1 or \
+                                                str(weather_item["RRR"]) == "nan":
+                                            forest_district_item["RRR"] += 0
+                                        else:
+                                            forest_district_item["RRR"] += float(weather_item["RRR"])
+                                        forest_district_item["Ff"].append(weather_item["Ff"])
+                                        if str(weather_item["U"]) != "nan":
+                                            u += int(weather_item["U"])
+                                            u_number += 1
+                                        forest_district_item["Td"].append(weather_item["Td"])
+                                        forest_district_item["DD"].append(weather_item["DD"])
+                                        forest_district_item["WW"].append(weather_item["WW"])
+                                        forest_district_item["W1"].append(weather_item["W1"])
+                                        forest_district_item["W2"].append(weather_item["W2"])
+                                        if str(weather_item["Po"]) != "nan":
+                                            po += float(weather_item["Po"])
+                                            po_number += 1
+                                        try:
+                                            if str(weather_item["Tn"]) != "nan":
+                                                forest_district_item["Tn"] = float(weather_item["Tn"])
+                                        except ValueError:
+                                            forest_district_item["Tn"] = "Error: " + str(weather_file_name)
+                                        try:
+                                            if str(weather_item["Tx"]) != "nan":
+                                                forest_district_item["Tx"] = float(weather_item["Tx"])
+                                        except ValueError:
+                                            forest_district_item["Tx"] = "Error: " + str(weather_file_name)
+                                if weather_characteristics:
+                                    forest_district_item["U"] = u / u_number
+                                    forest_district_item["Po"] = po / po_number
+        print("Строка " + str(forest_district_index) + ": " + str(datetime.now() - start_time))
+    print("***************************************************")
     print("Full time: " + str(datetime.now() - start_full_time))
 
     return forest_districts_processed_dict
