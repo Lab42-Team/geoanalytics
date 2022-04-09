@@ -206,3 +206,58 @@ def determine_weather_characteristics_for_forest_district(forest_districts_proce
     print("Full time: " + str(datetime.now() - start_full_time))
 
     return forest_districts_processed_dict
+
+
+def determine_hazard_classes_by_weather_for_forest_district(forest_districts_processed_dict, target_date):
+    """
+    Определение класса пожарной опасности по условиям погоды для лесных кварталов.
+    :param forest_districts_processed_dict: словарь с обработанными данными по лесным кварталам
+    :param target_date: целевая дата для поиска погоды
+    :return: дополненный словарь с обработанными данными по лесным кварталам
+    """
+    start_full_time = datetime.now()
+    forest_district_index = 0
+    # Получение списка csv-файлов с информацией по погодным условиям (прогноз погоды)
+    weather_conditions_list = gp.get_csv_file_list(gp.WEATHER_CONDITIONS_DIR_NAME)
+    # Обход лесных кварталов
+    for forest_district_item in forest_districts_processed_dict.values():
+        start_time = datetime.now()
+        forest_district_index += 1
+        forest_district_item["weather_hazard_class"] = ""
+        if forest_district_item["name_in"] == "Bodaibinskoe" or forest_district_item["name_in"] == "Kirenskoe" or \
+                forest_district_item["name_in"] == "Kazachinsko-Lenskoe" or \
+                forest_district_item["name_in"] == "Mamskoe" or forest_district_item["name_in"] == "Ust-Kutskoe":
+            # Обход ближайших метеостанций определенных для данного квартала
+            for weather_station in forest_district_item["weather_stations"]:
+                if not forest_district_item["weather_hazard_class"]:
+                    # Обход списка csv-файлов с информацией по погодным условиям (прогноз погоды)
+                    for weather_conditions_file_name in weather_conditions_list:
+                        if not forest_district_item["weather_hazard_class"]:
+                            # Поиск подстроки (номера метеостанции) в названии csv-файла электронной таблицы
+                            index = weather_conditions_file_name.find(weather_station)
+                            # Если csv-файл относится к искомой метеостанции
+                            if index != -1:
+                                # Получение данных по погодным условиям (прогноз погоды)
+                                weather_conditions_csv_data = gp.get_csv_data(weather_conditions_file_name,
+                                                                              gp.WEATHER_CONDITIONS_DIR_NAME)
+                                weather_conditions_dict = gp.get_weather_conditions_dict(weather_conditions_csv_data)
+                                # Обход записей погоды
+                                for weather_condition_item in weather_conditions_dict.values():
+                                    if datetime.strptime(weather_condition_item["datetime"], "%Y-%m-%d %H:%M:%S").date() == target_date and \
+                                            str(weather_condition_item["kp"]) != "nan" and not forest_district_item["weather_hazard_class"]:
+                                        # Определение класса опасности
+                                        if float(weather_condition_item["kp"]) <= 300:
+                                            forest_district_item["weather_hazard_class"] = "I"
+                                        if 301 <= float(weather_condition_item["kp"]) <= 1000:
+                                            forest_district_item["weather_hazard_class"] = "II"
+                                        if 1001 <= float(weather_condition_item["kp"]) <= 4000:
+                                            forest_district_item["weather_hazard_class"] = "III"
+                                        if 4001 <= float(weather_condition_item["kp"]) <= 10000:
+                                            forest_district_item["weather_hazard_class"] = "IV"
+                                        if float(weather_condition_item["kp"]) > 10000:
+                                            forest_district_item["weather_hazard_class"] = "V"
+        print("Строка " + str(forest_district_index) + ": " + str(datetime.now() - start_time))
+    print("***************************************************")
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return forest_districts_processed_dict
