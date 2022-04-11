@@ -365,13 +365,35 @@ def get_forest_districts_processed_dict(forest_districts_processed_csv_data):
     for index, row in forest_districts_processed_csv_data.iterrows():
         item = dict()
         # Для обработанного файла кварталов
-        item["name_in"] = row[0]
-        item["dacha_ru"] = row[1]
-        item["uch_l_ru"] = row[2]
-        item["kv"] = row[3]
-        item["geom"] = row[4]
-        item["hazard_classes"] = row[5]
-        item["weather_stations"] = str(row[6]).split(",")
+        item["name_in"] = row[1]
+        item["dacha_ru"] = row[2]
+        item["uch_l_ru"] = row[3]
+        item["kv"] = row[4]
+        item["geom"] = row[5]
+        item["hazard_classes"] = row[6]
+
+        string = str(row[7]).replace(" ", "")
+        string = string.replace("'", "")
+        string = string.replace("[", "")
+        res_string = string.replace("]", "")
+        item["weather_stations"] = res_string.split(",")
+
+        item["RRR"] = row[8]
+        item["Ff"] = row[9]
+        item["U"] = row[10]
+        item["Td"] = row[11]
+        item["DD"] = row[12]
+        item["WW"] = row[13]
+        item["W1"] = row[14]
+        item["W2"] = row[15]
+        item["Po"] = row[16]
+        item["Tn"] = row[17]
+        item["Tx"] = row[18]
+        item["Tx"] = row[18]
+        item["weather_hazard_class"] = row[19]
+        item["snowiness"] = row[20]
+        item["forest_zone"] = row[21]
+        item["forest_seed_zoning_zones"] = row[22]
         result[result_id] = item
         result_id += 1
 
