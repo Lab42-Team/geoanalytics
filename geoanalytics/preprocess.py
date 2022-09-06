@@ -10,7 +10,7 @@ DATA_DIR_NAME = "data"
 WEATHER_DIR_NAME = "weather_data"
 WEATHER_CONDITIONS_DIR_NAME = "kp_po_forcast"
 # Названия исходных csv-файлов
-FIRE_CSV_FILE = "data-2019.csv"  # "fires_in_region_2017.csv"
+FIRE_CSV_FILE = "data-2020.csv"  # "fires_in_region_2017.csv"
 CAR_ROADS_CSV_FILE = "gis_bogdanov.dorogiavtomobiln.csv"
 RAILWAYS_CSV_FILE = "gis_bogdanov.dorogizheleznyeb.csv"
 RIVERS_CSV_FILE = "gis_bogdanov.rekibakalskiregi.csv"
@@ -27,6 +27,9 @@ FOREST_TYPES_PROCESSED_CSV_FILE = "forest_types_processed.csv"  # Данные �
 SNOWINESS_CSV_FILE = "snowiness.csv"  # Данные по снегу
 # Название целевого (выходного) csv-файла
 OUTPUT_FILE_NAME = "data.csv"
+
+DATA_2019_V2 = "data-2019-v2.csv"
+DATA_2020_V2 = "data-2020-v2.csv"
 
 
 def get_csv_data(csv_file_name, subdir=None):
@@ -82,7 +85,6 @@ def get_fires_dict(fires_csv_data):
     result_id = 1
     for index, row in fires_csv_data.iterrows():
         item = dict()
-        item["id"] = row["id"]
         item["fire_id"] = row["fire_id"]
         # item["new_fire_id"] = ""  # Для обработки старого файла пожаров
         item["new_fire_id"] = row["new_fire_id"]
@@ -96,6 +98,20 @@ def get_fires_dict(fires_csv_data):
         item["municipalities"] = row["municipalities"]
         item["average_population_density"] = row["average_population_density"]
         item["forestry"] = row["forestry"]
+        item["kv"] = row["kv"]
+        item["forest_hazard_classes"] = row["forest_hazard_classes"]
+        item["flag"] = row["flag"]
+        item["forest_zone"] = row["forest_zone"]
+        item["forest_seed_zoning_zones"] = row["forest_seed_zoning_zones"]
+        item["weather_hazard_class"] = row["weather_hazard_class"]
+        item["snowiness"] = row["snowiness"]
+        item["snowiness-uncertainty"] = row["snowiness-uncertainty"]
+        item["thunderstorm"] = row["thunderstorm"]
+        item["distance_to_car_road"] = row["distance_to_car_road"]
+        item["distance_to_lake"] = row["distance_to_lake"]
+        item["area"] = row["area"]
+        item["distance_to_railway"] = row["distance_to_railway"]
+        # item["distance_to_river"] = row["distance_to_river"]  # Необходимо отключить, т.к. время подсчета очень большое
         item["weather_station_id"] = row["weather_station_id"]
         item["weather_station_name"] = row["weather_station_name"]
         item["RRR"] = row["RRR"]
@@ -108,23 +124,10 @@ def get_fires_dict(fires_csv_data):
         item["W1"] = row["W1"]
         item["W2"] = row["W2"]
         item["Po"] = row["Po"]
-        item["area"] = row["area"]
-        item["distance_to_car_road"] = row["distance_to_car_road"]
-        item["distance_to_railway"] = row["distance_to_railway"]
-        # item["distance_to_river"] = row["distance_to_river"]  # Необходимо отключить, т.к. время подсчета очень большое
-        item["distance_to_lake"] = row["distance_to_lake"]
-        item["kv"] = row["kv"]
-        item["forest_hazard_classes"] = row["forest_hazard_classes"]
-        item["flag"] = row["flag"]
-        item["forest_zone"] = row["forest_zone"]
-        item["forest_seed_zoning_zones"] = row["forest_seed_zoning_zones"]
-        item["weather_hazard_class"] = row["weather_hazard_class"]
-        item["snowiness"] = row["snowiness"]
-        item["snowiness-uncertainty"] = row["snowiness-uncertainty"]
-        item["name_locality"] = row["name_locality"]
-        item["name_MO_locality"] = row["name_MO_locality"]
-        item["municipalities_locality"] = row["municipalities_locality"]
-        item["distance_to_locality"] = row["distance_to_locality"]
+        # item["name_locality"] = row["name_locality"]
+        # item["name_MO_locality"] = row["name_MO_locality"]
+        # item["municipalities_locality"] = row["municipalities_locality"]
+        # item["distance_to_locality"] = row["distance_to_locality"]
         result[result_id] = item
         result_id += 1
 
@@ -475,6 +478,21 @@ def get_snowiness_dict(snowiness_csv_data):
         item["start"] = row[2]
         item["end"] = row[3]
         item["percent"] = row[17]
+        result[result_id] = item
+        result_id += 1
+
+    return result
+
+
+def get_loc_dict(loc_csv_data):
+    result = dict()
+    result_id = 1
+    for index, row in loc_csv_data.iterrows():
+        item = dict()
+        item["name_locality"] = row["name"]
+        item["municipalities_locality"] = row["ado"]
+        item["distance_to_locality"] = row["distance"]
+        item["name_MO_locality"] = row["name_MO"]
         result[result_id] = item
         result_id += 1
 

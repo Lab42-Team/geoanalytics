@@ -26,20 +26,23 @@ def determine_area_and_distances(fires_dict, car_roads_dict, railways_dict, rive
     start_full_time = datetime.now()
     for fire_item in fires_dict.values():
         start_time = datetime.now()
-        # Получение полигона пожара
-        fire_polygon = shapely.wkt.loads(fire_item["geometry"])
-        # Получение площади полигона пожара
-        fire_polygon_area = get_area(fire_polygon)
-        fire_item["area"] = "{:.3f}".format(fire_polygon_area)
-        # Получение минимального расстояния текущего полигона с пожаром до автомобильной дороги
-        fire_item["distance_to_car_road"] = get_min_distance(fire_polygon, car_roads_dict)
-        # Получение минимального расстояния текущего полигона с пожаром до железной дороги
-        fire_item["distance_to_railway"] = get_min_distance(fire_polygon, railways_dict)
-        # # Получение минимального расстояния текущего полигона с пожаром до реки
-        # fire_item["distance_to_river"] = get_min_distance(fire_polygon, rivers_dict)
-        # Получение минимального расстояния текущего полигона с пожаром до озера
-        fire_item["distance_to_lake"] = get_min_distance(fire_polygon, lakes_dict)
-        print(str(fire_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
+        try:
+            # Получение полигона пожара
+            fire_polygon = shapely.wkb.loads(fire_item["poly"], hex=True)
+            # Получение площади полигона пожара
+            fire_polygon_area = get_area(fire_polygon)
+            fire_item["area"] = "{:.3f}".format(fire_polygon_area)
+            # Получение минимального расстояния текущего полигона с пожаром до автомобильной дороги
+            fire_item["distance_to_car_road"] = get_min_distance(fire_polygon, car_roads_dict)
+            # Получение минимального расстояния текущего полигона с пожаром до железной дороги
+            fire_item["distance_to_railway"] = get_min_distance(fire_polygon, railways_dict)
+            # Получение минимального расстояния текущего полигона с пожаром до реки
+            fire_item["distance_to_river"] = get_min_distance(fire_polygon, rivers_dict)
+            # Получение минимального расстояния текущего полигона с пожаром до озера
+            fire_item["distance_to_lake"] = get_min_distance(fire_polygon, lakes_dict)
+            print(str(fire_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
+        except WKBReadingError:
+            print("Не удалось создать геометрию из-за ошибок при чтении.")
     print("***************************************************")
     print("Full time: " + str(datetime.now() - start_full_time))
 
@@ -895,3 +898,20 @@ def testing(file_data):
 
     distance = get_distance(shape1, shape2)
     print("Geodesic distance: {:.3f} km".format(distance))
+
+
+def determine_loc(fires_dict, loc_dict):
+    start_full_time = datetime.now()
+    for key1, fire_item in fires_dict.items():
+        start_time = datetime.now()
+        for key2, loc_item in loc_dict.items():
+            if key1 == key2:
+                fire_item["name_locality"] = loc_item["name_locality"]
+                fire_item["municipalities_locality"] = loc_item["municipalities_locality"]
+                fire_item["distance_to_locality"] = loc_item["distance_to_locality"]
+                fire_item["name_MO_locality"] = loc_item["name_MO_locality"]
+        print(str(fire_item["new_fire_id"]) + ": " + str(datetime.now() - start_time))
+    print("***************************************************")
+    print("Full time: " + str(datetime.now() - start_full_time))
+
+    return fires_dict
