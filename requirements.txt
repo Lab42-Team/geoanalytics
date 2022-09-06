@@ -1,3 +1,5 @@
 pandas
 pyproj
 shapely
+python-Levenshtein
+haversine
